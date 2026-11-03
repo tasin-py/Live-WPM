@@ -1,28 +1,414 @@
-# Live WPM
+<p align="center">
+  <img src="docs/images/logo.png" width="96" alt="Live WPM logo">
+</p>
 
-A tiny Windows tray app that shows your live typing speed on a floating speedometer.
+<h1 align="center">Live WPM</h1>
 
-- **Private:** it never records which keys you press, only how fast you type. Nothing is sent anywhere, except a once-a-day check for a new version.
-- **Light:** a single ~90 KB exe; nothing to install.
-- Peak speed, accuracy, words, and a daily history.
-- Ignores games (full-screen apps), shortcuts, and held keys.
+<p align="center">
+  <b>A live typing speedometer for Windows.</b><br>
+  See how fast you type while you type: in any app, with no setup, and without recording a single key.
+</p>
 
-## Download
+<p align="center">
+  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-38D6FF?style=flat-square&logo=windows&logoColor=white" alt="Windows 10 | 11">
+  <img src="https://img.shields.io/badge/size-~100%20KB-38D6FF?style=flat-square" alt="Size about 100 KB">
+  <img src="https://img.shields.io/badge/install-not%20needed-38D6FF?style=flat-square" alt="No install needed">
+  <img src="https://img.shields.io/badge/keys%20recorded-none-38D6FF?style=flat-square" alt="No keys recorded">
+</p>
 
-Get `Live WPM.exe` from the [latest release](../../releases/latest) and put it in a folder you'll keep, then run it.
-Windows may show "Windows protected your PC" the first time. Click **More info → Run anyway**.
+<p align="center">
+  <a href="../../releases/latest"><b>Download</b></a> ·
+  <a href="#features">Features</a> ·
+  <a href="#privacy">Privacy</a> ·
+  <a href="#using-live-wpm">Guide</a> ·
+  <a href="#faq">FAQ</a> ·
+  <a href="#building-from-source">Build</a>
+</p>
 
-Requires Windows 10 or 11.
+<p align="center">
+  <img src="docs/images/home.png" width="720" alt="Live WPM home screen with today's speed graph, best run and lifetime stats">
+</p>
 
-## Build it yourself
+---
+
+## Contents
+
+- [Features](#features)
+- [Privacy](#privacy)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Using Live WPM](#using-live-wpm)
+  - [The tray icon](#the-tray-icon)
+  - [The floating speedometer](#the-floating-speedometer)
+  - [Home](#home)
+  - [History](#history)
+  - [Settings](#settings)
+- [How speed is measured](#how-speed-is-measured)
+- [Updates](#updates)
+- [Your data](#your-data)
+- [Uninstalling](#uninstalling)
+- [FAQ](#faq)
+- [Building from source](#building-from-source)
+- [Publishing a release](#publishing-a-release)
+- [Project structure](#project-structure)
+- [Support](#support)
+
+---
+
+## Features
+
+| | |
+|---|---|
+| **Live speedometer** | A small dial floats over your screen and shows your speed as you type, in any app. |
+| **Shows up only when you type** | The dial fades in when you start typing and fades out about 4 seconds after you stop. |
+| **Best-run records** | Keeps your peak speed, along with the accuracy and word count of that run. |
+| **Daily graphs** | Every typing run is plotted across the day, so you can see when you type fastest. |
+| **History** | One row per day with peak speed, average speed and word count. You can delete any day. |
+| **Ignores games** | Key presses are skipped while a full-screen app is in front, and runs full of held-down keys are thrown out. |
+| **Ignores shortcuts** | Ctrl, Alt and Win shortcuts and key auto-repeat are never counted. |
+| **One switch to stop** | Turn tracking off from the tray and the app ignores your keyboard completely. |
+| **Light** | One ~100 KB exe. No installer, no runtime to download, and next to no CPU while idle. |
+| **Sharp on any display** | Per-monitor DPI support keeps text crisp at 100%, 150%, 200% and on mixed-scale setups. |
+| **Self-updating** | Checks once a day for a new version and updates when you say so. |
+
+<p align="center">
+  <img src="docs/images/speedometer.png" width="360" alt="The floating speedometer">
+  &nbsp;&nbsp;
+  <img src="docs/images/tray-menu.png" width="268" alt="The tray menu">
+</p>
+
+---
+
+## Privacy
+
+Live WPM is built so that it **cannot** tell anyone what you typed, including you.
+
+**What it keeps:** only numbers. These are speeds, accuracy, word and character counts, backspace counts, durations, and the time of day each run started.
+
+**What it never keeps:** the keys themselves. When a key is pressed, the app sorts it into one of four kinds (a character, a space or Enter, a backspace, or a held key) and discards it right away. Which letter you pressed is never stored, in memory or on disk. Passwords, messages and documents are never seen as text.
+
+**Network:** the app connects to the internet for one thing only: a once-a-day check of this project's GitHub Releases for a new version, plus the download when you choose to update. No statistics, analytics or telemetry are ever sent.
+
+**Off means off:** when tracking is switched off, the app stops reacting to the keyboard entirely.
+
+> [!NOTE]
+> Everything is stored in a single plain-text file on your own PC (see [Your data](#your-data)). You can open it in Notepad and check that it contains only numbers.
+
+---
+
+## Requirements
+
+- Windows 10 or Windows 11 (64-bit or 32-bit)
+- .NET Framework 4.x, which is already part of every Windows 10 and 11 install
+
+---
+
+## Installation
+
+1. Download **`Live WPM.exe`** from the [latest release](../../releases/latest).
+2. Move it to a folder you'll keep, for example `C:\Users\<you>\Apps\Live WPM\`.
+   Start with Windows remembers this location, so don't run it from your Downloads folder if you plan to clean that out.
+3. Double-click it.
+4. If Windows shows **"Windows protected your PC"**, click **More info → Run anyway**.
+   This appears for apps from smaller publishers that aren't code-signed. See the [FAQ](#faq).
+5. Enter a name when asked. It's only shown in the app, as your *Typer* name.
+
+Live WPM now runs in the system tray, next to the clock. Start typing anywhere and the speedometer appears.
+
+> [!TIP]
+> If you don't see the icon, click the **^** arrow in the taskbar's notification area. You can drag the icon out of there to keep it always visible.
+
+---
+
+## Using Live WPM
+
+### The tray icon
+
+| Action | Result |
+|---|---|
+| **Click** (left or right) | Opens the quick menu |
+| **Double-click** | Opens the main Live WPM window |
+
+The quick menu has three switches:
+
+- **Enabled:** turns tracking on or off. When it's off, the tray icon turns grey and no keys are seen.
+- **Floating window:** shows or hides the speedometer.
+- **Only when typing:** shows the speedometer only while you type, instead of all the time.
+
+Below them are **Open Live WPM** and **Exit**.
+
+### The floating speedometer
+
+| Part | Meaning |
+|---|---|
+| **wpm now** (top left) | Your speed right now, from your last 3 seconds of typing. It drops to 0 as soon as you pause. |
+| **Dial and centre number** | Your average speed for the current run. |
+| **PEAK** | The highest live speed reached in this run. |
+| **WORDS** | Words typed in this run. |
+
+The dial's range is set by your all-time peak, so a full dial means you're typing at your record speed.
+
+- The arc turns **red** as you approach your record.
+- The centre number turns **orange** when you're on pace to **beat** your record.
+
+Controls:
+
+- **Drag** anywhere on the dial to move it. Its position is remembered.
+- **Pin** (top right) keeps it above other windows. Unpin it to let other windows cover it.
+- **✕** hides the speedometer. Turn it back on from the tray menu's **Floating window** switch.
+
+### Home
+
+- **Today's speed:** a graph of every typing run today. Each point is one run's average speed. Hover a point to see its time, peak and word count.
+- **Best run:** your peak speed, with that run's accuracy and word count.
+- **Lifetime:** your average speed, average accuracy and total words.
+
+### History
+
+One row per day, newest first, with that day's **peak**, **average** and **words**. Hover a row to see two buttons:
+
+- the **graph** icon opens that day's speed graph
+- the **trash** icon deletes that day
+
+<p align="center">
+  <img src="docs/images/history.png" width="640" alt="History page">
+</p>
+
+### Settings
+
+| Setting | What it does |
+|---|---|
+| **Typer Name** | Change the name shown in the app. |
+| **Start with Windows** | Starts Live WPM quietly in the tray when you sign in. It appears in Task Manager → Startup apps. |
+| **Donate** | Shows the bKash QR code for supporting the project. |
+| **Updates** | Shows your version and checks for, or installs, a new one. |
+| **Reset peak speed** | Clears only your best-run record. |
+| **Reset word count** | Sets lifetime words back to zero. |
+| **Reset all** | Erases every stat and all history. Your Typer Name is kept. |
+
+Every reset asks for confirmation first and can't be undone.
+
+---
+
+## How speed is measured
+
+Live WPM uses the standard typing-test definition: **one word = 5 characters**. So 300 characters in one minute is 60 WPM, whatever the actual word lengths.
+
+- **Runs.** A run starts with your first key press and ends after 3 seconds without typing.
+- **Live speed** (*wpm now*) looks at the last 3 seconds of typing, so it reacts quickly.
+- **Peak** is the highest live speed that held for at least 2 seconds, so one quick burst can't set a record.
+- **Accuracy** is the share of characters you didn't delete with Backspace.
+
+A run counts toward your records, averages and graphs only if:
+
+- it has at least **25 characters** and lasts at least **3 seconds**
+- it doesn't look like gaming, meaning no more than 20% of key presses were held down (WASD movement, for example)
+
+Shorter runs still add to your word count.
+
+---
+
+## Updates
+
+Live WPM never updates without asking.
+
+1. About 30 seconds after it starts, and at most **once a day**, it checks GitHub for a newer release.
+2. If one exists, a notification appears: *"Version X is available. Open Settings to update."*
+3. Open **Settings → Updates** and click **Update**, then confirm.
+4. The new version downloads, replaces the old one and restarts by itself. Your stats and settings stay as they are.
+
+You can also click **Check** in Settings at any time.
+
+> [!IMPORTANT]
+> Automatic updates start from version 1.0.0. Earlier test builds have to be replaced by hand once.
+
+---
+
+## Your data
+
+All data is in one file:
 
 ```
+%APPDATA%\Live WPM\stats.dat
+```
+
+Paste `%APPDATA%\Live WPM` into File Explorer's address bar to open the folder.
+
+- **Back up or move to a new PC:** copy `stats.dat` into the same folder on the other PC while Live WPM is closed.
+- **Start fresh:** use **Settings → Reset all**, or delete the file while the app is closed.
+
+The file is written safely: a new copy is saved first and then swapped in, so a crash or power cut can't leave it half-written.
+
+---
+
+## Uninstalling
+
+Live WPM doesn't install anything, so removing it takes three steps:
+
+1. Open **Settings** and turn off **Start with Windows**. This removes its startup entry.
+2. Right-click the tray icon and choose **Exit**.
+3. Delete `Live WPM.exe`. To remove your stats too, delete the `%APPDATA%\Live WPM` folder.
+
+---
+
+## FAQ
+
+<details>
+<summary><b>Windows says "Windows protected your PC". Is it safe?</b></summary>
+<br>
+
+That's Microsoft SmartScreen. It appears for any app that isn't code-signed and hasn't been downloaded by many people yet. It isn't a virus warning. Click **More info → Run anyway**. The warning fades as more people download a release.
+
+The full source code is in this repository, so you can read it or [build the exe yourself](#building-from-source).
+</details>
+
+<details>
+<summary><b>My antivirus flagged it. Why?</b></summary>
+<br>
+
+To measure typing in every app, Live WPM uses a standard Windows keyboard hook (`WH_KEYBOARD_LL`). Keyloggers use the same mechanism, so some antivirus tools flag new, unsigned apps that use it, even when the app does nothing harmful. This is a false positive.
+
+Live WPM keeps only key *types*, never which key was pressed, and sends nothing anywhere except the update check. You can confirm this in [`src/KeyboardHook.cs`](src/KeyboardHook.cs) and [`src/TypingEngine.cs`](src/TypingEngine.cs). If your antivirus quarantines it, restore it and add it as an exception, or build it from source.
+</details>
+
+<details>
+<summary><b>Does it record my passwords?</b></summary>
+<br>
+
+No. No text is recorded at all, passwords included. See [Privacy](#privacy).
+</details>
+
+<details>
+<summary><b>Why didn't my typing count?</b></summary>
+<br>
+
+Check these in order:
+
+- **Enabled** is off in the tray menu (the icon is grey).
+- A full-screen app or game was in front.
+- The run was under 25 characters or 3 seconds. Its words are counted, but it doesn't affect your records or averages.
+- You were using shortcuts or holding keys down. Those are ignored on purpose.
+</details>
+
+<details>
+<summary><b>The speedometer disappeared.</b></summary>
+<br>
+
+With **Only when typing** on, it hides about 4 seconds after you stop typing. If it doesn't come back when you type, turn **Floating window** back on in the tray menu. Clicking the ✕ turns that switch off.
+</details>
+
+<details>
+<summary><b>The speedometer is off-screen after I changed monitors.</b></summary>
+<br>
+
+Live WPM moves the dial back onto a visible screen when it starts. Exit and reopen the app to reset its position.
+</details>
+
+<details>
+<summary><b>Does it slow my PC down?</b></summary>
+<br>
+
+No. It does a few counter updates per key press and redraws only while the dial is visible. Memory use is kept low and trimmed while idle.
+</details>
+
+<details>
+<summary><b>Can I use it on more than one PC?</b></summary>
+<br>
+
+Yes. Each PC keeps its own stats. To carry stats over, copy `stats.dat` as described in [Your data](#your-data).
+</details>
+
+---
+
+## Building from source
+
+No Visual Studio or .NET SDK needed. The build uses the C# compiler that's already part of Windows.
+
+```powershell
+git clone <this repository's URL>
+cd <repository folder>
 powershell -ExecutionPolicy Bypass -File build.ps1
 ```
 
-It uses the C# compiler that ships with Windows, so you don't need an SDK. The exe goes to `dist\`.
+The result is `dist\Live WPM.exe`.
+
+**What the build does**
+
+- Compiles every `src\*.cs` file with `csc.exe` from .NET Framework 4.x.
+- Embeds everything in `src\assets\`, and any `.ttf` or `.otf` fonts in `src\fonts\`, into the exe.
+- Applies the icon (`src\app.ico`) and the DPI manifest (`src\app.manifest`). If the icon is missing, the build draws it first using the app's own code.
+
+**Optional: app font.** Live WPM is designed for **TBJ Neuetra Sans**. Its licence doesn't allow sharing the files, so they aren't in this repository. If you own the font, put its `.ttf` or `.otf` files in `src\fonts\` before building. Without them, the app uses Segoe UI.
+
+**Code style.** The code is limited to C# 5, the version the built-in compiler supports. That means no string interpolation (`$"..."`), no `?.` and no `=>` members.
+
+**Command-line options**
+
+| Option | Purpose |
+|---|---|
+| `--tray` | Start hidden in the tray. Used by Start with Windows. |
+| `--make-icon <path>` | Write the app icon to a `.ico` file. Used by the build. |
+| `--updated` | Internal. Used when restarting after an update. |
+
+---
+
+## Publishing a release
+
+Releases drive the in-app updater, so the steps must be followed exactly.
+
+1. Raise the version in `src/Program.cs`:
+   ```csharp
+   [assembly: AssemblyVersion("1.1.0.0")]
+   [assembly: AssemblyFileVersion("1.1.0.0")]
+   ```
+2. Build with `build.ps1`.
+3. On GitHub, go to **Releases → Draft a new release**.
+4. Create a tag that matches the version: **`v1.1.0`**.
+5. Attach **only** `dist\Live WPM.exe`, not the whole `dist` folder.
+6. Write what changed, then click **Publish release**.
+
+Within a day, every running copy shows the update notification.
+
+> [!WARNING]
+> The tag must be **higher** than the version inside the exe, or nobody gets the update. If you fork this project, set `Repo` in [`src/Updater.cs`](src/Updater.cs) to your own `owner/repository`, or the updater will look at the wrong place.
+
+---
+
+## Project structure
+
+```
+Live WPM/
+├── build.ps1                 Build script (no SDK needed)
+├── README.md
+├── docs/images/              Screenshots for this page
+└── src/
+    ├── Program.cs            Entry point, tray icon, single-instance, Start with Windows
+    ├── KeyboardHook.cs       Low-level keyboard hook: sorts keys into kinds, skips full-screen apps
+    ├── TypingEngine.cs       Runs, live speed, peak, accuracy, gaming filter
+    ├── DataStore.cs          Settings and stats, saved to %APPDATA%\Live WPM\stats.dat
+    ├── FloatingWindow.cs     The floating speedometer
+    ├── MainWindow.cs         Home, History and Settings pages
+    ├── SpeedGraph.cs         Daily speed graph drawing
+    ├── DayGraphWindow.cs     Pop-up graph for one day in History
+    ├── TrayMenu.cs           The tray quick menu
+    ├── NamePrompt.cs         Typer Name dialog
+    ├── DonateWindow.cs       bKash donation QR
+    ├── Updater.cs            GitHub release check and self-update
+    ├── Theme.cs              Colours, fonts, text drawing, DPI-aware window base
+    ├── app.ico / app.manifest
+    ├── assets/               Images built into the exe
+    └── fonts/                Optional app font (not in the repository)
+```
+
+---
 
 ## Support
 
-Made by ~ Tasin · [fb.com/tasin.py](https://fb.com/tasin.py) · Discord: `tasin_py`
-Donations via bKash: open **Settings → Donate** in the app.
+Live WPM is free. If it's useful to you, you can support it through **bKash**: open the app and go to **Settings → Donate** to scan the QR code.
+
+Found a bug or have an idea? [Open an issue](../../issues).
+
+<p align="center">
+  Made by <b>~ Tasin</b><br>
+  <a href="https://fb.com/tasin.py">fb.com/tasin.py</a> · Discord: <code>tasin_py</code>
+</p>
