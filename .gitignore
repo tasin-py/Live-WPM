@@ -1,5 +1,6 @@
 # built files go in GitHub Releases, not the repo
 dist/
+versions/
 graphify-out/
 *.exe
 *.new
@@ -7,3 +8,4 @@ graphify-out/
 
 # commercial font: licence doesn't allow sharing the files
 src/fonts/
+*.zip

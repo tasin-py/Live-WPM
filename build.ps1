@@ -5,7 +5,12 @@ $root = $PSScriptRoot
 $csc = Join-Path $env:WINDIR "Microsoft.NET\Framework64\v4.0.30319\csc.exe"
 if (-not (Test-Path $csc)) { $csc = Join-Path $env:WINDIR "Microsoft.NET\Framework\v4.0.30319\csc.exe" }
 
-$out = Join-Path $root "dist"
+# Each version gets its own folder (versions\v1.1.0\...), named from AssemblyVersion in src\Program.cs.
+$m = Select-String -Path (Join-Path $root "src\Program.cs") -Pattern 'AssemblyVersion\("(\d+)\.(\d+)\.(\d+)' | Select-Object -First 1
+if (-not $m) { throw "AssemblyVersion not found in src\Program.cs" }
+$g = $m.Matches[0].Groups
+$version = "v$($g[1].Value).$($g[2].Value).$($g[3].Value)"
+$out = Join-Path $root "versions\$version"
 New-Item -ItemType Directory -Force $out | Out-Null
 $exe = Join-Path $out "Live WPM.exe"
 $ico = Join-Path $root "src\app.ico"

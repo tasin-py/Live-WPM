@@ -61,15 +61,17 @@
 
 ## What's new
 
-**1.5** (current: 1.5.3)
+**1.5** (current: 1.5.5)
 
-- **Seven themes**: Average Tasin, Beverage Tashhid, Ahnaf Dark, Makam Blue, Ziraf White, Adib Red and Safir Glass. Each one restyles the main window and the floating speedometer.
-- **Safir Glass**: the main window and the speedometer both show your blurred desktop through a deep sky-blue tint, with raised 3D panes.
+- **Seven themes**: Average Tasin, Beverage Tashhid, Ahnaf Dark, Makam Blue, Ziraf Minimal, Adib Red and Safir Glass. Each one restyles the main window and the floating speedometer.
+- **Safir Glass**: the speedometer shows your blurred desktop through a deep sky-blue tint, and the main window matches it in deep navy, with raised 3D panes.
 - **Floating window background slider**: fade the speedometer's background from solid to fully clear, with the numbers and dial staying sharp.
 - **Remove last session**: take back your most recent run, peak speed included.
 - **Cleaner Settings**: three simple groups (General, Data, About), one line per setting.
 - **More reliable typing detection**: the keyboard hook re-attaches itself, and full-screen detection no longer mistakes a maximised browser or editor for a game.
 - **Smoother speedometer**: true rounded corners, no line through the middle, and bolder corner labels in the light themes.
+- **Sharper Safir Glass text**: glass now uses the same ClearType text as the other themes, so it stays crisp over any desktop.
+- **Your theme is remembered**: Live WPM opens in the theme you last picked.
 - **Updates now on**: the app checks this repository's releases once a day.
 
 ---
@@ -82,7 +84,7 @@
 | **Shows up only when you type** | The dial fades in when you start typing and fades out about 4 seconds after you stop. |
 | **Best-run records** | Keeps your peak speed, along with the accuracy and word count of that run. |
 | **Daily graphs** | Every typing run is plotted across the day, so you can see when you type fastest. |
-| **Themes** | Seven built-in looks, from flat dark grey to pink, black-and-white and see-through glass. |
+| **Themes** | Seven built-in looks, from flat dark grey to pink, black-and-gold, all-white-on-black and see-through glass. |
 | **History** | One row per day with peak speed, average speed and word count. You can delete any day. |
 | **Ignores games** | Key presses are skipped while a full-screen app is in front, and runs full of held-down keys are thrown out. |
 | **Ignores shortcuts** | Ctrl, Alt and Win shortcuts and key auto-repeat are never counted. |
@@ -205,8 +207,8 @@ Settings is split into three groups.
 |---|---|
 | **Typer Name** | Change the name shown in the app. |
 | **Start with Windows** | Starts Live WPM quietly in the tray when you sign in. It appears in Task Manager → Startup apps. |
-| **Theme** | Click **Change** to open the theme picker. Clicking a theme applies it at once, to the app and the floating speedometer. Live WPM always starts in **Average Tasin**. See [Themes](#themes). |
-| **Floating window background** | A 0–100 % slider for the speedometer's background only. The numbers, dial and buttons stay solid at any setting. In Safir Glass it also sets how see-through the main window is. The speedometer appears for a moment whenever you change this or the theme, so you can see the result. |
+| **Theme** | Click **Change** to open the theme picker. Clicking a theme applies it at once, to the app and the floating speedometer. Live WPM remembers your choice and opens in it next time. See [Themes](#themes). |
+| **Floating window background** | A 0–100 % slider for the speedometer's background only. The numbers, dial and buttons stay solid at any setting. The speedometer appears for a moment whenever you change this or the theme, so you can see the result. |
 
 **Data**
 
@@ -232,11 +234,11 @@ Every one of these asks for confirmation first and can't be undone.
 |---|---|
 | **Average Tasin** | The original: flat dark grey (#323437) with a cyan accent. The default. |
 | **Beverage Tashhid** | Soft blush pink with deep plum text, extra-round corners and little hearts. |
-| **Ahnaf Dark** | Premium black and orange, with hairline card edges. The speedometer keeps its sky-blue dial. |
+| **Ahnaf Dark** | Premium black and polished gold (#D5A149), with a gold-lit edge on every card. The speedometer keeps its sky-blue dial. |
 | **Makam Blue** | Midnight blue with a periwinkle accent and gold for record pace. |
-| **Ziraf White** | Pure black and white, with no other colours, including the floating speedometer. Small labels are bold for easy reading. |
+| **Ziraf Minimal** | Minimal and dark: black surfaces with only white and grey on them, including the floating speedometer. |
 | **Adib Red** | Deep wine-black with a crimson accent. Near the top of the dial the arc turns gold. |
-| **Safir Glass** | Deep sky-blue glass with a 3D look: raised see-through panes with a lit top edge and a soft shadow, and no colour washes. The main window and the floating speedometer are equally see-through: both show your blurred desktop with the same light deep-blue tint. Needs Windows **Transparency effects** turned on. |
+| **Safir Glass** | Deep sky-blue glass with a 3D look: raised panes with a lit top edge and a soft shadow, and no colour washes. The floating speedometer shows your blurred desktop with a light deep-blue tint, and the main window uses the same look in deep navy. The opacity slider changes only the speedometer. Needs Windows **Transparency effects** turned on. |
 
 ---
 
@@ -380,7 +382,7 @@ cd Live-WPM
 powershell -ExecutionPolicy Bypass -File build.ps1
 ```
 
-The result goes in its own folder per version, named from `AssemblyVersion` in `src\Program.cs`. For example, version 1.5.3 builds to `versions\v1.5.3\Live WPM.exe`. Earlier builds stay in their own folders, so building a new version never overwrites an old one.
+The result goes in its own folder per version, named from `AssemblyVersion` in `src\Program.cs`. For example, version 1.5.5 builds to `versions\v1.5.5\Live WPM.exe`. Earlier builds stay in their own folders, so building a new version never overwrites an old one.
 
 **What the build does**
 
@@ -408,19 +410,19 @@ Releases drive the in-app updater, so the steps must be followed exactly.
 
 1. Raise the version in `src/Program.cs`:
    ```csharp
-   [assembly: AssemblyVersion("1.5.3.0")]
-   [assembly: AssemblyFileVersion("1.5.3.0")]
+   [assembly: AssemblyVersion("1.5.5.0")]
+   [assembly: AssemblyFileVersion("1.5.5.0")]
    ```
 2. Build with `build.ps1`.
 3. On GitHub, go to **Releases → Draft a new release**.
-4. Create a tag that matches the version: **`v1.5.3`**.
-5. Attach **only** `versions\v1.5.3\Live WPM.exe` (the folder for the new version), not the whole folder.
+4. Create a tag that matches the version: **`v1.5.5`**.
+5. Attach **only** `versions\v1.5.5\Live WPM.exe` (the folder for the new version), not the whole folder.
 6. Write what changed, then click **Publish release**.
 
 Or do it all from a terminal with the GitHub CLI:
 
 ```powershell
-gh release create v1.5.3 "versions/v1.5.3/Live WPM.exe" --title "Live WPM 1.5.3" --notes "What changed"
+gh release create v1.5.5 "versions/v1.5.5/Live WPM.exe" --title "Live WPM 1.5.5" --notes "What changed"
 ```
 
 Within a day, every running copy shows the update notification.
