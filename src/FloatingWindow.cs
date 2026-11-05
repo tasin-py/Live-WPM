@@ -2,16 +2,21 @@ using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace LiveWpm
 {
     // The small draggable speedometer. Every number on it is animated toward its target,
     // so a jump from 35 to 75 wpm sweeps up like a car's dial instead of snapping.
+    // Each frame is drawn with per-pixel transparency and handed to Windows, which rounds the
+    // corners (smoothly, on Windows 11) and composites it: the background can fade (Settings)
+    // while the numbers and dial stay solid, and in the glass theme Windows blurs what is behind it.
     sealed class FloatingWindow : BufferedForm
     {
         const int W = 240, H = 184;
-        const float CX = W / 2f, CY = 98, R = 58;
+        const float CX = W / 2f, CY = 98, R = 58, Corner = 8; // Corner: Windows 11's own window rounding
         static readonly RectangleF CloseRect = new RectangleF(W - 34, 8, 26, 26);
         static readonly RectangleF PinRect = new RectangleF(W - 62, 8, 26, 26);
 
@@ -24,9 +29,11 @@ namespace LiveWpm
         double needle, needleV, avg, peak, words, dialMax;
         double live;                       // top-left "wpm now": follows the live speed closely, not the needle
         double arcShow;                    // how visible the coloured speed arc is (0..1)
-        double cr = Theme.Accent.R, cg = Theme.Accent.G, cb = Theme.Accent.B; // arc colour, kept as doubles so fades finish
-        double opacity, opacityTarget;    // tracked here: Form.Opacity rounds to 1/255 and would never "arrive"
+        double cr = Theme.Dial.R, cg = Theme.Dial.G, cb = Theme.Dial.B; // arc colour, kept as doubles so fades finish
+        double opacity, opacityTarget;    // whole-window fade in/out (applied when the frame is pushed to the screen)
         bool hideWhenFaded, hoverPin, hoverClose;
+        long previewUntil;                 // Settings changed: stay up briefly so the Typer sees the result
+        int blurState = -1;
 
         public event Action PinChanged, CloseClicked;
 
@@ -41,6 +48,7 @@ namespace LiveWpm
             SetLogicalSize(W, H);
             TopMost = store.Pinned;
             dialMax = MaxFor(store.PeakWpm);
+            SetStyle(ControlStyles.OptimizedDoubleBuffer, false); // frames go straight to the window, alpha intact
             anim.Interval = 15;
             anim.Tick += delegate { Frame(); };
             PlaceOnScreen();
@@ -62,6 +70,16 @@ namespace LiveWpm
         {
             base.OnHandleCreated(e);
             Theme.RoundCorners(Handle);
+            try
+            {
+                int none = unchecked((int)0xFFFFFFFE);
+                DwmSetWindowAttribute(Handle, 34, ref none, 4);   // no system border: the theme draws its own edge
+                MARGINS all = new MARGINS { Left = -1, Right = -1, Top = -1, Bottom = -1 };
+                DwmExtendFrameIntoClientArea(Handle, ref all);      // let the frame's alpha show through
+            }
+            catch { }
+            blurState = -1;
+            ApplyLook();
         }
 
         void PlaceOnScreen()
@@ -79,7 +97,28 @@ namespace LiveWpm
         public void ApplyPin()
         {
             TopMost = store.Pinned;
-            Invalidate();
+            Render();
+        }
+
+        // Theme or background opacity changed in Settings: restyle, and show it for a moment.
+        public void Preview()
+        {
+            previewUntil = clock.ElapsedMilliseconds + 2500;
+            ApplyLook();
+            Appear();
+        }
+
+        // Blur on or off for the current theme, then a fresh frame.
+        // Labels, ticks and icons. Light themes use their solid text colour
+        // so everything on the speedometer stays crisp and dark.
+        static Color Faint { get { return Theme.Light ? Theme.Text : Theme.Muted; } }
+
+        void ApplyLook()
+        {
+            cr = Theme.Dial.R; cg = Theme.Dial.G; cb = Theme.Dial.B; // the arc starts in the new theme's colour
+            if (!IsHandleCreated) return;
+            UpdateBlur();
+            Render();
         }
 
         // ---- visibility -----------------------------------------------------
@@ -91,7 +130,8 @@ namespace LiveWpm
             if (!Visible)
             {
                 opacity = 0;
-                Opacity = 0;
+                if (!IsHandleCreated) CreateHandle();
+                Render();   // a clear first frame, so showing it never flashes
                 Show();
             }
             Kick();
@@ -170,20 +210,20 @@ namespace LiveWpm
             else
             {
                 double f = needle / dialMax;
-                target = f >= 0.85 ? Theme.Lerp(Theme.Accent, Theme.Red, (f - 0.85) / 0.15) : Theme.Accent;
+                target = f >= 0.85 ? Theme.Lerp(Theme.Dial, Theme.Hot, (f - 0.85) / 0.15) : Theme.Dial;
             }
             double ct = 1 - Math.Exp(-4 * dt);
             cr += (target.R - cr) * ct; cg += (target.G - cg) * ct; cb += (target.B - cb) * ct;
 
             opacity = Step(opacity, opacityTarget, dt * 4.5);
-            Opacity = opacity;
+            bool previewing = now < previewUntil;
 
             bool calm = !engine.Shown && needle < 0.4 && Math.Abs(needleV) < 0.4 &&
                         avg < 0.5 && peak < 0.5 && words < 0.5 && arcShow <= 0 && Math.Abs(dialMax - tMax) < 0.2;
 
             // "Only when typing": pop out as the dial drops back toward zero.
             bool dropping = !engine.Shown && needle < dialMax * 0.15;
-            if ((calm || dropping) && store.OnlyWhenTyping && !hideWhenFaded && Visible) Disappear();
+            if ((calm || dropping) && store.OnlyWhenTyping && !hideWhenFaded && Visible && !previewing) Disappear();
 
             if (hideWhenFaded && opacity <= 0)
             {
@@ -191,32 +231,33 @@ namespace LiveWpm
                 hideWhenFaded = false;
             }
 
-            if (calm && opacity == opacityTarget || !Visible)
+            if (calm && opacity == opacityTarget && !previewing || !Visible)
             {
                 needle = needleV = avg = peak = words = live = 0;
                 dialMax = tMax;
-                cr = Theme.Accent.R; cg = Theme.Accent.G; cb = Theme.Accent.B;
+                cr = Theme.Dial.R; cg = Theme.Dial.G; cb = Theme.Dial.B;
                 anim.Stop();
             }
-            Invalidate();
+            UpdateBlur();
+            Render();
         }
 
         // ---- painting -----------------------------------------------------------
 
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            Graphics g = e.Graphics;
-            Theme.Prepare(g);
-            g.ScaleTransform(S, S);
-            bool record = engine.RecordPace;
+        // Frames are pushed by Render; a repaint Windows asks for just copies the last one again.
+        protected override void OnPaint(PaintEventArgs e) { Blit(); }
+        protected override void OnPaintBackground(PaintEventArgs e) { }
 
-            g.Clear(Theme.Bg);
+        void DrawFrame(Graphics g)
+        {
+            bool record = engine.RecordPace;
+            DrawBackground(g);
 
             // top-left: exact current speed
             string cur = Theme.Fmt(live);
             Font big = Theme.F(22, true);
             Theme.DrawText(g, cur, big, Theme.Text, 14, 9);
-            Theme.DrawText(g, "wpm now", Theme.F(10, false), Theme.Muted, 14 + Theme.Measure(g, cur, big) + 5, 20);
+            Theme.DrawText(g, "wpm now", Theme.F(10, Theme.Light), Faint, 14 + Theme.Measure(g, cur, big) + 5, 20);
 
             DrawPin(g);
             DrawClose(g);
@@ -225,14 +266,152 @@ namespace LiveWpm
             // centre: session average
             string a = Theme.Fmt(avg);
             Theme.DrawTextCenter(g, a, Theme.F(32, record), record ? Theme.Orange : Theme.Text, CX, CY - 24);
-            Theme.DrawTextCenter(g, "avg wpm", Theme.F(10, false), Theme.Muted, CX, CY + 15);
+            Theme.DrawTextCenter(g, "avg wpm", Theme.F(10, false), Faint, CX, CY + 15);
 
             // bottom-left: session peak, bottom-right: words
-            Theme.DrawText(g, "PEAK", Theme.F(9.5f, true), Theme.Muted, 14, H - 40);
+            Theme.DrawText(g, "PEAK", Theme.F(Theme.Light ? 10 : 9.5f, true), Faint, 14, H - 40);
             Theme.DrawText(g, Theme.Fmt(peak), Theme.F(17, true), Theme.Text, 13, H - 28);
-            Theme.DrawTextRight(g, "WORDS", Theme.F(9.5f, true), Theme.Muted, W - 14, H - 40);
+            Theme.DrawTextRight(g, "WORDS", Theme.F(Theme.Light ? 10 : 9.5f, true), Faint, W - 14, H - 40);
             Theme.DrawTextRight(g, Theme.Num((long)Math.Round(words)), Theme.F(17, true), Theme.Text, W - 13, H - 28);
         }
+
+        // Background at the Typer's chosen opacity. It never goes fully clear (alpha 1 of 255
+        // is invisible) so the window still catches the mouse and can be dragged at 0 %.
+        void DrawBackground(Graphics g)
+        {
+            float a = store.FloatBgOpacity / 100f;
+            // The whole rectangle is filled: Windows clips it to its own smoothly rounded corners,
+            // so there is no second, jagged edge of ours to show.
+            RectangleF r = new RectangleF(0, 0, W, H);
+            Color tint = Theme.FloatTint;
+            using (SolidBrush b = new SolidBrush(Color.FromArgb(Math.Max(1, (int)Math.Round(tint.A * a)), tint)))
+                g.FillRectangle(b, r);
+            if (!Theme.Glass) return;
+
+            // glass: a bevel (lit top edge, shaded inner bottom)
+            // that follows Windows' own corners, so the pane looks raised
+            double s = 0.5 + 0.5 * a;
+            Theme.Bevel(g, Theme.RoundExact(new RectangleF(0.5f, 0.5f, W - 1, H - 1), Corner), r,
+                        Color.FromArgb((int)(210 * s), 255, 255, 255), Color.FromArgb((int)(36 * s), 255, 255, 255));
+            Theme.Bevel(g, Theme.RoundExact(new RectangleF(1.5f, 1.5f, W - 3, H - 3), Corner - 1), r,
+                        Color.FromArgb(0, 0, 0, 0), Color.FromArgb((int)(70 * s), 0, 0, 0));
+        }
+
+        // ---- window plumbing -----------------------------------------------------
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct BITMAPINFOHEADER
+        {
+            public uint biSize; public int biWidth, biHeight; public ushort biPlanes, biBitCount;
+            public uint biCompression, biSizeImage; public int biXPelsPerMeter, biYPelsPerMeter; public uint biClrUsed, biClrImportant;
+        }
+        [StructLayout(LayoutKind.Sequential)] struct MARGINS { public int Left, Right, Top, Bottom; }
+        [StructLayout(LayoutKind.Sequential)] struct AccentPolicy { public int State, Flags, Color, Animation; }
+        [StructLayout(LayoutKind.Sequential)] struct CompositionData { public int Attribute; public IntPtr Data; public int Size; }
+
+        [DllImport("user32.dll")] static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref CompositionData data);
+        [DllImport("user32.dll")] static extern IntPtr GetDC(IntPtr hwnd);
+        [DllImport("user32.dll")] static extern int ReleaseDC(IntPtr hwnd, IntPtr hdc);
+        [DllImport("dwmapi.dll")] static extern int DwmExtendFrameIntoClientArea(IntPtr hwnd, ref MARGINS m);
+        [DllImport("dwmapi.dll")] static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
+        [DllImport("gdi32.dll")] static extern IntPtr CreateCompatibleDC(IntPtr hdc);
+        [DllImport("gdi32.dll")] static extern bool DeleteDC(IntPtr hdc);
+        [DllImport("gdi32.dll")] static extern IntPtr SelectObject(IntPtr hdc, IntPtr obj);
+        [DllImport("gdi32.dll")] static extern bool DeleteObject(IntPtr obj);
+        [DllImport("gdi32.dll")] static extern bool BitBlt(IntPtr dst, int x, int y, int w, int h, IntPtr src, int sx, int sy, int rop);
+        [DllImport("gdi32.dll")]
+        static extern IntPtr CreateDIBSection(IntPtr hdc, ref BITMAPINFOHEADER bmi, uint usage, out IntPtr bits, IntPtr section, uint offset);
+
+        // The frame is drawn straight into a premultiplied 32-bit DIB and copied to the window
+        // as-is, alpha included; Windows composites it over the desktop (or the blur).
+        Bitmap canvas;
+        IntPtr canvasDC, canvasDib, canvasBits;
+        byte[] fadeBuffer;
+
+        void EnsureCanvas(int w, int h)
+        {
+            if (canvas != null && canvas.Width == w && canvas.Height == h) return;
+            FreeCanvas();
+            BITMAPINFOHEADER bi = new BITMAPINFOHEADER();
+            bi.biSize = (uint)Marshal.SizeOf(typeof(BITMAPINFOHEADER));
+            bi.biWidth = w; bi.biHeight = -h; bi.biPlanes = 1; bi.biBitCount = 32;
+            canvasDC = CreateCompatibleDC(IntPtr.Zero);
+            canvasDib = CreateDIBSection(canvasDC, ref bi, 0, out canvasBits, IntPtr.Zero, 0);
+            SelectObject(canvasDC, canvasDib);
+            canvas = new Bitmap(w, h, w * 4, PixelFormat.Format32bppPArgb, canvasBits);
+        }
+
+        void FreeCanvas()
+        {
+            if (canvas != null) { canvas.Dispose(); canvas = null; }
+            if (canvasDC != IntPtr.Zero) { DeleteDC(canvasDC); canvasDC = IntPtr.Zero; }
+            if (canvasDib != IntPtr.Zero) { DeleteObject(canvasDib); canvasDib = IntPtr.Zero; }
+            fadeBuffer = null;
+        }
+
+        void Render()
+        {
+            if (!IsHandleCreated || IsDisposed || Width <= 0 || Height <= 0) return;
+            EnsureCanvas(Width, Height);
+            using (Graphics g = Graphics.FromImage(canvas))
+            {
+                g.Clear(Color.Transparent);
+                Theme.Prepare(g);
+                g.ScaleTransform(S, S);
+                float a = store.FloatBgOpacity / 100f;
+                Theme.AlphaText = true;
+                Theme.TextShadow = a < 0.6f ? (int)(150 * (0.6f - a) / 0.6f) : 0; // keeps text legible on busy backdrops
+                if (Theme.Glass) Theme.TextShadow = Math.Max(Theme.TextShadow, Theme.GlassTextShadow); // glass is mostly the desktop: always lift the text
+                if (Theme.Glass) Theme.SetGlassFrame(canvasBits, canvas.Width, canvas.Height);
+                try { DrawFrame(g); }
+                finally { Theme.AlphaText = false; Theme.TextShadow = 0; Theme.SetGlassFrame(IntPtr.Zero, 0, 0); }
+            }
+            if (opacity < 0.999) Fade();
+            Blit();
+        }
+
+        // Whole-window fade: every premultiplied channel scales by the same amount.
+        void Fade()
+        {
+            int n = canvas.Width * canvas.Height * 4;
+            if (fadeBuffer == null || fadeBuffer.Length != n) fadeBuffer = new byte[n];
+            Marshal.Copy(canvasBits, fadeBuffer, 0, n);
+            int k = (int)Math.Round(Math.Max(0, opacity) * 256);
+            for (int i = 0; i < n; i++) fadeBuffer[i] = (byte)(fadeBuffer[i] * k >> 8);
+            Marshal.Copy(fadeBuffer, 0, canvasBits, n);
+        }
+
+        void Blit()
+        {
+            if (canvas == null) return;
+            IntPtr dc = GetDC(Handle);
+            BitBlt(dc, 0, 0, canvas.Width, canvas.Height, canvasDC, 0, 0, 0x00CC0020); // SRCCOPY
+            ReleaseDC(Handle, dc);
+        }
+
+        // Windows' own blur behind the glass; the other themes need nothing (see OnHandleCreated).
+        // The blur is held back while the window fades so it doesn't pop in or out.
+        void UpdateBlur()
+        {
+            int want = Theme.Glass && store.FloatBgOpacity > 0 && opacity > 0.6 && Visible
+                ? 3   // ACCENT_ENABLE_BLURBEHIND
+                : 0;  // off: the extended frame alone shows our pixels over the desktop (a gradient accent adds a grey layer)
+            if (want == blurState || !IsHandleCreated) return;
+            blurState = want;
+            AccentPolicy accent = new AccentPolicy { State = want, Flags = 0, Color = 0 };
+            int size = Marshal.SizeOf(typeof(AccentPolicy));
+            IntPtr mem = Marshal.AllocHGlobal(size);
+            try
+            {
+                Marshal.StructureToPtr(accent, mem, false);
+                CompositionData data = new CompositionData { Attribute = 19, Data = mem, Size = size }; // WCA_ACCENT_POLICY
+                SetWindowCompositionAttribute(Handle, ref data);
+            }
+            catch { } // older Windows: no blur
+            finally { Marshal.FreeHGlobal(mem); }
+        }
+
+        protected override void OnScaleChanged() { ApplyLook(); }
 
         void DrawDial(Graphics g)
         {
@@ -247,7 +426,7 @@ namespace LiveWpm
             {
                 double ang = (135 + 27 * i) * Math.PI / 180;
                 float r1 = R - (i % 5 == 0 ? 16 : 13), r2 = R - 9;
-                using (Pen tick = new Pen(Color.FromArgb(i % 5 == 0 ? 150 : 80, Theme.Muted), i % 5 == 0 ? 1.6f : 1.1f))
+                using (Pen tick = new Pen(Color.FromArgb(i % 5 == 0 ? 150 : 80, Faint), i % 5 == 0 ? 1.6f : 1.1f))
                     g.DrawLine(tick, CX + (float)Math.Cos(ang) * r1, CY + (float)Math.Sin(ang) * r1,
                                      CX + (float)Math.Cos(ang) * r2, CY + (float)Math.Sin(ang) * r2);
             }
@@ -277,9 +456,9 @@ namespace LiveWpm
 
         void DrawClose(Graphics g)
         {
-            if (hoverClose) Theme.FillRound(g, Theme.Red, CloseRect, 7);
+            if (hoverClose) Theme.FillRound(g, Theme.Danger, CloseRect, 7);
             float cx = CloseRect.X + CloseRect.Width / 2, cy = CloseRect.Y + CloseRect.Height / 2;
-            using (Pen p = new Pen(hoverClose ? Color.White : Theme.Muted, 1.6f))
+            using (Pen p = new Pen(hoverClose ? Color.White : Faint, 1.6f))
             {
                 p.StartCap = p.EndCap = LineCap.Round;
                 g.DrawLine(p, cx - 4.5f, cy - 4.5f, cx + 4.5f, cy + 4.5f);
@@ -290,9 +469,9 @@ namespace LiveWpm
         void DrawPin(Graphics g)
         {
             bool on = store.Pinned;
-            if (on) Theme.FillRound(g, Color.FromArgb(40, Theme.Accent), PinRect, 7);
+            if (on) Theme.FillRound(g, Color.FromArgb(40, Theme.Dial), PinRect, 7);
             else if (hoverPin) Theme.FillRound(g, Theme.CardHover, PinRect, 7);
-            Color c = on ? Theme.Accent : (hoverPin ? Theme.Text : Theme.Muted);
+            Color c = on ? Theme.Dial : (hoverPin ? Theme.Text : Faint);
 
             GraphicsState st = g.Save();
             g.TranslateTransform(PinRect.X + PinRect.Width / 2, PinRect.Y + PinRect.Height / 2);
@@ -322,14 +501,14 @@ namespace LiveWpm
             {
                 hoverPin = hp; hoverClose = hc;
                 Cursor = hp || hc ? Cursors.Hand : Cursors.Default;
-                Invalidate();
+                Render();
             }
         }
 
         protected override void OnMouseLeave(EventArgs e)
         {
             base.OnMouseLeave(e);
-            if (hoverPin || hoverClose) { hoverPin = hoverClose = false; Cursor = Cursors.Default; Invalidate(); }
+            if (hoverPin || hoverClose) { hoverPin = hoverClose = false; Cursor = Cursors.Default; Render(); }
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
@@ -360,7 +539,7 @@ namespace LiveWpm
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing) anim.Dispose();
+            if (disposing) { anim.Dispose(); FreeCanvas(); }
             base.Dispose(disposing);
         }
     }

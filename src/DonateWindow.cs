@@ -23,7 +23,7 @@ namespace LiveWpm
 
         DonateWindow()
         {
-            Text = "Donate";
+            Text = "Buy Me A Coffee";
             FormBorderStyle = FormBorderStyle.None;
             ShowInTaskbar = false;
             StartPosition = FormStartPosition.CenterParent;
@@ -56,13 +56,14 @@ namespace LiveWpm
             Graphics g = e.Graphics;
             Theme.Prepare(g);
             g.ScaleTransform(S, S);
-            g.Clear(Theme.Bg);
+            Theme.PaintBackground(g, W, H);
 
-            Theme.DrawText(g, "Support Live WPM", Theme.F(17, true), Theme.Text, 30, 24);
+            Theme.DrawText(g, "Buy Me A Coffee", Theme.F(17, true), Theme.Text, 30, 24);
             Theme.DrawText(g, "Scan with bKash or any bank app to send money", Theme.F(11, false), Theme.Muted, 31, 52);
             DrawClose(g);
 
             Theme.FillRound(g, Color.White, QrCard, 14);
+            if (Theme.Light) Theme.StrokeRound(g, Theme.Border, QrCard, 14, 1); // keeps the white card visible on light themes
             if (qr != null)
             {
                 float iw = QrCard.Width - 40, ih = iw * qr.Height / qr.Width;
@@ -99,7 +100,7 @@ namespace LiveWpm
 
         void DrawClose(Graphics g)
         {
-            if (hoverClose) Theme.FillRound(g, Theme.Red, CloseRect, 7);
+            if (hoverClose) Theme.FillRound(g, Theme.Danger, CloseRect, 7);
             float cx = CloseRect.X + CloseRect.Width / 2, cy = CloseRect.Y + CloseRect.Height / 2;
             using (Pen p = new Pen(hoverClose ? Color.White : Theme.Muted, 1.6f))
             {

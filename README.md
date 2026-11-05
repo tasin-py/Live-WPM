@@ -11,7 +11,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-38D6FF?style=flat-square&logo=windows&logoColor=white" alt="Windows 10 | 11">
-  <img src="https://img.shields.io/badge/size-~100%20KB-38D6FF?style=flat-square" alt="Size about 100 KB">
+  <img src="https://img.shields.io/badge/size-~135%20KB-38D6FF?style=flat-square" alt="Size about 135 KB">
   <img src="https://img.shields.io/badge/install-not%20needed-38D6FF?style=flat-square" alt="No install needed">
   <img src="https://img.shields.io/badge/keys%20recorded-none-38D6FF?style=flat-square" alt="No keys recorded">
   <img src="https://img.shields.io/github/v/release/tasin-py/Live-WPM?style=flat-square&color=38D6FF" alt="Latest release">
@@ -61,7 +61,11 @@
 
 ## What's new
 
-**1.5** (current: 1.5.5)
+**1.6** (current: 1.6.0)
+
+- **Your own themes**: upload a small theme file from the theme picker and it joins the built-in themes. See [Make your own theme](#make-your-own-theme).
+
+**1.5**
 
 - **Seven themes**: Average Tasin, Beverage Tashhid, Ahnaf Dark, Makam Blue, Ziraf Minimal, Adib Red and Safir Glass. Each one restyles the main window and the floating speedometer.
 - **Safir Glass**: the speedometer shows your blurred desktop through a deep sky-blue tint, and the main window matches it in deep navy, with raised 3D panes.
@@ -84,12 +88,12 @@
 | **Shows up only when you type** | The dial fades in when you start typing and fades out about 4 seconds after you stop. |
 | **Best-run records** | Keeps your peak speed, along with the accuracy and word count of that run. |
 | **Daily graphs** | Every typing run is plotted across the day, so you can see when you type fastest. |
-| **Themes** | Seven built-in looks, from flat dark grey to pink, black-and-gold, all-white-on-black and see-through glass. |
+| **Themes** | Seven built-in looks, from flat dark grey to pink, black-and-gold, all-white-on-black and see-through glass, plus up to nine of your own. |
 | **History** | One row per day with peak speed, average speed and word count. You can delete any day. |
 | **Ignores games** | Key presses are skipped while a full-screen app is in front, and runs full of held-down keys are thrown out. |
 | **Ignores shortcuts** | Ctrl, Alt and Win shortcuts and key auto-repeat are never counted. |
 | **One switch to stop** | Turn tracking off from the tray and the app ignores your keyboard completely. |
-| **Light** | One ~100 KB exe. No installer, no runtime to download, and next to no CPU while idle. |
+| **Light** | One ~135 KB exe. No installer, no runtime to download, and next to no CPU while idle. |
 | **Sharp on any display** | Per-monitor DPI support keeps text crisp at 100%, 150%, 200% and on mixed-scale setups. |
 | **Undo a run** | Remove the last session, and the peak it set goes back to what it was before. |
 | **Self-updating** | Checks once a day for a new version and updates when you say so. |
@@ -207,7 +211,7 @@ Settings is split into three groups.
 |---|---|
 | **Typer Name** | Change the name shown in the app. |
 | **Start with Windows** | Starts Live WPM quietly in the tray when you sign in. It appears in Task Manager → Startup apps. |
-| **Theme** | Click **Change** to open the theme picker. Clicking a theme applies it at once, to the app and the floating speedometer. Live WPM remembers your choice and opens in it next time. See [Themes](#themes). |
+| **Theme** | Click **Change** to open the theme picker. Clicking a theme applies it at once, to the app and the floating speedometer. Live WPM remembers your choice and opens in it next time. You can also upload your own. See [Themes](#themes). |
 | **Floating window background** | A 0–100 % slider for the speedometer's background only. The numbers, dial and buttons stay solid at any setting. The speedometer appears for a moment whenever you change this or the theme, so you can see the result. |
 
 **Data**
@@ -239,6 +243,40 @@ Every one of these asks for confirmation first and can't be undone.
 | **Ziraf Minimal** | Minimal and dark: black surfaces with only white and grey on them, including the floating speedometer. |
 | **Adib Red** | Deep wine-black with a crimson accent. Near the top of the dial the arc turns gold. |
 | **Safir Glass** | Deep sky-blue glass with a 3D look: raised panes with a lit top edge and a soft shadow, and no colour washes. The floating speedometer shows your blurred desktop with a light deep-blue tint, and the main window uses the same look in deep navy. The opacity slider changes only the speedometer. Needs Windows **Transparency effects** turned on. |
+
+#### Make your own theme
+
+A theme is a small text file of colours, ending in `.lwtheme`.
+
+1. Open **Settings → Theme → Change** and click **Get starter file**. Save it anywhere.
+2. Right-click the file, choose **Open with**, then pick **Notepad**. Change the name and colours, and save it.
+3. Back in the theme picker, click **Upload theme** and choose your file. It applies straight away.
+
+```
+name = My Theme
+background = #14202B
+card = #1E2F3D
+text = #F2F6F8
+accent = #4FD1B5
+```
+
+| Line | What it sets | Needed? |
+|---|---|---|
+| `name` | The name in the picker, up to 20 characters | Yes |
+| `background` | The window behind everything | Yes |
+| `card` | The panels and the floating speedometer's details | Yes |
+| `text` | Main text | Yes |
+| `accent` | Highlights, switches and buttons | Yes |
+| `muted` | Quieter text | No, worked out for you |
+| `border` | Lines and the dial's track | No, worked out for you |
+| `dial` | The speedometer's arc | No, uses `accent` |
+
+- Colours are written as `#RRGGBB`.
+- A light `background` switches the theme to light-mode behaviour automatically.
+- Live WPM refuses a file if the text would be hard to read, and tells you what to change.
+- Uploading a theme with the same name as one of yours offers to replace it.
+- To remove one of your themes, hover over it in the picker and click the **×**.
+- **Uploading stays on your PC.** Nothing goes online. Live WPM keeps its own copy and reads only the name and colours, so a theme file can't run anything. To share a theme, send someone the file.
 
 ---
 
@@ -278,7 +316,7 @@ You can also click **Check** in Settings at any time.
 
 ## Your data
 
-All data is in one file:
+All your stats and settings are in one file:
 
 ```
 %APPDATA%\Live WPM\stats.dat
@@ -288,6 +326,7 @@ Paste `%APPDATA%\Live WPM` into File Explorer's address bar to open the folder.
 
 - **Back up or move to a new PC:** copy `stats.dat` into the same folder on the other PC while Live WPM is closed.
 - **Start fresh:** use **Settings → Reset all**, or delete the file while the app is closed.
+- **Your own themes** are in the `themes` folder beside it. Copy that folder too when moving to a new PC. **Reset all** doesn't remove them.
 
 The file is written safely: a new copy is saved first and then swapped in, so a crash or power cut can't leave it half-written.
 
@@ -382,7 +421,7 @@ cd Live-WPM
 powershell -ExecutionPolicy Bypass -File build.ps1
 ```
 
-The result goes in its own folder per version, named from `AssemblyVersion` in `src\Program.cs`. For example, version 1.5.5 builds to `versions\v1.5.5\Live WPM.exe`. Earlier builds stay in their own folders, so building a new version never overwrites an old one.
+The result goes in its own folder per version, named from `AssemblyVersion` in `src\Program.cs`. For example, version 1.6.0 builds to `versions\v1.6.0\Live WPM.exe`. Earlier builds stay in their own folders, so building a new version never overwrites an old one.
 
 **What the build does**
 
@@ -410,19 +449,19 @@ Releases drive the in-app updater, so the steps must be followed exactly.
 
 1. Raise the version in `src/Program.cs`:
    ```csharp
-   [assembly: AssemblyVersion("1.5.5.0")]
-   [assembly: AssemblyFileVersion("1.5.5.0")]
+   [assembly: AssemblyVersion("1.6.0.0")]
+   [assembly: AssemblyFileVersion("1.6.0.0")]
    ```
 2. Build with `build.ps1`.
 3. On GitHub, go to **Releases → Draft a new release**.
-4. Create a tag that matches the version: **`v1.5.5`**.
-5. Attach **only** `versions\v1.5.5\Live WPM.exe` (the folder for the new version), not the whole folder.
+4. Create a tag that matches the version: **`v1.6.0`**.
+5. Attach **only** `versions\v1.6.0\Live WPM.exe` (the folder for the new version), not the whole folder.
 6. Write what changed, then click **Publish release**.
 
 Or do it all from a terminal with the GitHub CLI:
 
 ```powershell
-gh release create v1.5.5 "versions/v1.5.5/Live WPM.exe" --title "Live WPM 1.5.5" --notes "What changed"
+gh release create v1.6.0 "versions/v1.6.0/Live WPM.exe" --title "Live WPM 1.6.0" --notes "What changed"
 ```
 
 Within a day, every running copy shows the update notification.
@@ -455,7 +494,8 @@ Live WPM/
     ├── Updater.cs            GitHub release check and self-update
     ├── Theme.cs              Themes, colours, fonts, text drawing, DPI-aware window base
     ├── ThemePicker.cs        The theme picker window
-    ├── GlassCanvas.cs        See-through, blurred main window for the Safir Glass theme
+    ├── ThemeFiles.cs         Loads, checks and saves the Typer's own theme files
+    ├── GlassCanvas.cs        Glass drawing surface for the Safir Glass main window
     ├── app.ico / app.manifest
     ├── assets/               Images built into the exe
     └── fonts/                Optional app font (not in the repository)

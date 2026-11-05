@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.InteropServices;
 
 namespace LiveWpm
@@ -37,12 +38,23 @@ namespace LiveWpm
         const int LongPressMs = 400;     // typists tap keys for ~100 ms; games hold them
         const int StuckKeyMs = 10000;    // forget a "held" key whose release we somehow missed
 
+        const int RearmMs = 5000;        // how often the hook is re-attached (see Watch)
+
+        // Full-screen windows of these apps are still typing (F11 browser, zen-mode editors).
+        static readonly string[] TypingApps = {
+            "chrome", "msedge", "firefox", "brave", "opera", "opera_gx", "vivaldi", "arc",
+            "code", "cursor", "devenv", "notepad", "notepad++", "sublime_text", "winword",
+            "obsidian", "notion", "discord", "slack", "telegram", "whatsapp", "windowsterminal" };
+
         IntPtr hook = IntPtr.Zero;
         readonly HookProc proc;
         readonly long[] downSince = new long[256]; // 0 = key is up
         readonly Stopwatch clock = Stopwatch.StartNew();
-        long fullscreenCheckedAt = -1000;
-        bool fullscreen;
+        readonly System.Windows.Forms.Timer watch = new System.Windows.Forms.Timer();
+        long rearmedAt;
+        bool fullscreen;                 // kept up to date by Watch, only read by the hook
+        IntPtr lastFg;
+        bool lastFgTypingApp;
 
         [DllImport("user32.dll")]
         static extern IntPtr GetForegroundWindow();
@@ -62,6 +74,8 @@ namespace LiveWpm
         static extern bool IsZoomed(IntPtr h);
         [DllImport("shell32.dll")]
         static extern int SHQueryUserNotificationState(out int state);
+        [DllImport("user32.dll")]
+        static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
 
         [StructLayout(LayoutKind.Sequential)]
         struct RECT { public int Left, Top, Right, Bottom; }
@@ -72,6 +86,13 @@ namespace LiveWpm
         public KeyboardHook()
         {
             proc = Callback; // keep the delegate alive while Windows holds it
+            // Compile the key path now: compiling it on the first keypress can be slow enough
+            // for Windows to drop the brand-new hook.
+            foreach (string name in new[] { "Callback", "Handle", "Classify", "Down" })
+                System.Runtime.CompilerServices.RuntimeHelpers.PrepareMethod(
+                    typeof(KeyboardHook).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static).MethodHandle);
+            watch.Interval = 1000;
+            watch.Tick += delegate { Watch(); };
         }
 
         public bool Active { get { return hook != IntPtr.Zero; } }
@@ -79,19 +100,46 @@ namespace LiveWpm
         public void Start()
         {
             if (hook != IntPtr.Zero) return;
-            using (ProcessModule m = Process.GetCurrentProcess().MainModule)
-                hook = SetWindowsHookEx(WH_KEYBOARD_LL, proc, GetModuleHandle(m.ModuleName), 0);
+            hook = Install();
+            rearmedAt = clock.ElapsedMilliseconds;
+            fullscreen = false;
+            lastFg = IntPtr.Zero;
+            watch.Start();
         }
 
         public void Stop()
         {
+            watch.Stop();
             if (hook == IntPtr.Zero) return;
             UnhookWindowsHookEx(hook);
             hook = IntPtr.Zero;
             Array.Clear(downSince, 0, downSince.Length);
         }
 
-        public void Dispose() { Stop(); }
+        public void Dispose() { Stop(); watch.Dispose(); }
+
+        IntPtr Install()
+        {
+            using (ProcessModule m = Process.GetCurrentProcess().MainModule)
+                return SetWindowsHookEx(WH_KEYBOARD_LL, proc, GetModuleHandle(m.ModuleName), 0);
+        }
+
+        // Runs once a second on the UI thread while tracking, so the hook itself never waits on anything.
+        void Watch()
+        {
+            fullscreen = GameInFront();
+
+            // Windows silently drops a low-level hook that answers too slowly (a busy PC, waking
+            // from sleep) and never says so. Re-attaching it every few seconds - new hook first,
+            // then the old one removed, so no key slips through - brings tracking back on its own.
+            long now = clock.ElapsedMilliseconds;
+            if (now - rearmedAt < RearmMs) return;
+            rearmedAt = now;
+            IntPtr fresh = Install();
+            if (fresh == IntPtr.Zero) return;
+            UnhookWindowsHookEx(hook);
+            hook = fresh;
+        }
 
         IntPtr Callback(int nCode, IntPtr wParam, IntPtr lParam)
         {
@@ -107,7 +155,7 @@ namespace LiveWpm
                 long since = downSince[vk];
                 if (since != 0 && now - since < StuckKeyMs) return; // Windows auto-repeat of a held key
                 downSince[vk] = now;
-                if (FullscreenAppInFront(now)) return;               // games, presentations, videos
+                if (fullscreen) return;                              // a game fills the screen
                 int kind = Classify(vk);
                 if (kind >= 0 && Key != null) Key((KeyKind)kind);
             }
@@ -120,18 +168,14 @@ namespace LiveWpm
             }
         }
 
-        // True when the window in front fills its whole monitor (full-screen or borderless games).
-        // Checked at most once a second so the hook stays instant.
-        bool FullscreenAppInFront(long now)
+        // True when a game is in front: exclusive full-screen DirectX, or a borderless window
+        // filling its monitor that isn't a browser or editor (those go full-screen for typing too).
+        bool GameInFront()
         {
-            if (now - fullscreenCheckedAt < 1000) return fullscreen;
-            fullscreenCheckedAt = now;
-            fullscreen = false;
             try
             {
                 int state;
-                if (SHQueryUserNotificationState(out state) == 0 && (state == 2 || state == 3 || state == 4))
-                    return fullscreen = true; // busy full-screen app, D3D full-screen, presentation mode
+                if (SHQueryUserNotificationState(out state) == 0 && state == 3) return true; // D3D full-screen
 
                 IntPtr fg = GetForegroundWindow();
                 if (fg == IntPtr.Zero || fg == GetShellWindow() || fg == GetDesktopWindow()) return false;
@@ -145,11 +189,28 @@ namespace LiveWpm
                 MONITORINFO mi = new MONITORINFO();
                 mi.cbSize = Marshal.SizeOf(typeof(MONITORINFO));
                 if (!GetWindowRect(fg, out r) || !GetMonitorInfo(MonitorFromWindow(fg, 2), ref mi)) return false;
-                fullscreen = r.Left <= mi.rcMonitor.Left && r.Top <= mi.rcMonitor.Top &&
+                bool fills = r.Left <= mi.rcMonitor.Left && r.Top <= mi.rcMonitor.Top &&
                              r.Right >= mi.rcMonitor.Right && r.Bottom >= mi.rcMonitor.Bottom;
+                return fills && !IsTypingApp(fg);
+            }
+            catch { return false; }
+        }
+
+        // Looks up the window's program once per window, not every second.
+        bool IsTypingApp(IntPtr fg)
+        {
+            if (fg == lastFg) return lastFgTypingApp;
+            lastFg = fg;
+            lastFgTypingApp = false;
+            uint pid;
+            GetWindowThreadProcessId(fg, out pid);
+            try
+            {
+                using (Process p = Process.GetProcessById((int)pid))
+                    lastFgTypingApp = Array.IndexOf(TypingApps, p.ProcessName.ToLowerInvariant()) >= 0;
             }
             catch { }
-            return fullscreen;
+            return lastFgTypingApp;
         }
 
         static bool Down(int vk) { return (GetAsyncKeyState(vk) & 0x8000) != 0; }

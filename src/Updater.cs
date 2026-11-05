@@ -16,7 +16,7 @@ namespace LiveWpm
     {
         // GitHub "owner/repo" whose Releases hold new versions. Each release needs a tag like
         // "v1.1.0" and the new "Live WPM.exe" attached. Empty = updates are switched off.
-        const string Repo = "";
+        const string Repo = "tasin-py/Live-WPM";
 
         static Control ui;
         static DataStore store;

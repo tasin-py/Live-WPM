@@ -18,34 +18,53 @@ namespace LiveWpm
         const float ListTop = 136, RowH = 46, ListBottom = H - 18;
 
         readonly DataStore store;
-        readonly Action startupChanged, dataChanged;
+        readonly Action startupChanged, dataChanged, appearanceChanged;
         Bitmap logo;
         readonly List<KeyValuePair<RectangleF, string>> hits = new List<KeyValuePair<RectangleF, string>>();
         int page;          // 0 home, 1 history, 2 settings
         string hover;
         float scroll;
 
-        public MainWindow(DataStore store, Action startupChanged, Action dataChanged)
+        public MainWindow(DataStore store, Action startupChanged, Action dataChanged, Action appearanceChanged)
         {
             this.store = store;
             this.startupChanged = startupChanged;
             this.dataChanged = dataChanged;
+            this.appearanceChanged = appearanceChanged;
             Text = Theme.AppName;
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
             StartPosition = FormStartPosition.CenterScreen;
             SetLogicalSize(W, H);
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
-            logo = Theme.Logo((int)(38 * S), Theme.Accent);
+            logo = Theme.Logo((int)(38 * S), Theme.LogoAccent);
         }
 
         protected override void OnHandleCreated(EventArgs e)
         {
             base.OnHandleCreated(e);
             Theme.DarkTitleBar(Handle);
+            ApplyGlass();
         }
 
         public void RefreshData() { Invalidate(); }
+
+        // ---- glass: the window shows the blurred desktop, like the floating window ----
+
+        readonly GlassCanvas glass = new GlassCanvas();
+        bool glassOn;
+
+        void ApplyGlass()
+        {
+            glassOn = Theme.Glass;
+            SetStyle(ControlStyles.OptimizedDoubleBuffer, !glassOn); // glass frames go straight to the window, alpha intact
+            GlassCanvas.Apply(Handle, glassOn);
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            if (!glassOn) base.OnPaintBackground(e);
+        }
 
         // ---- hit testing ---------------------------------------------------------
 
@@ -64,6 +83,7 @@ namespace LiveWpm
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
+            if (sliding) { SlideTo(e.X); return; }
             if (page == 0)
             {
                 DayStat today;
@@ -100,8 +120,20 @@ namespace LiveWpm
         {
             base.OnMouseUp(e);
             if (e.Button != MouseButtons.Left) return;
+            if (sliding)
+            {
+                sliding = false;
+                Capture = false;
+                store.Save();
+                Invalidate();
+                return;
+            }
+            // A click counts only if it also started here: closing a pop-up with a press would
+            // otherwise land its release on whatever button sits underneath.
             string id = HitAt(e.Location);
-            if (id == null) return;
+            bool started = id == pressed;
+            pressed = null;
+            if (id == null || !started) return;
             string name = store.TyperName;
 
             if (id == "tab:home") { page = 0; }
@@ -113,6 +145,7 @@ namespace LiveWpm
                 if (Confirm("Delete the history for " + day.ToString("D") + "?"))
                 {
                     store.Days.Remove(day);
+                    store.ForgetDay(day);
                     store.Save();
                     dataChanged();
                 }
@@ -128,6 +161,7 @@ namespace LiveWpm
                 string n = NamePrompt.Ask(store.TyperName, false, this);
                 if (n != null) { store.TyperName = n; store.Save(); dataChanged(); }
             }
+            else if (id == "set:theme") ThemePicker.ShowFor(this, store.ThemeName, SetTheme);
             else if (id == "set:donate") DonateWindow.ShowFor(this);
             else if (id == "set:update")
             {
@@ -137,6 +171,10 @@ namespace LiveWpm
                         Updater.Install(this);
                 }
                 else Updater.Check(true);
+            }
+            else if (id == "link:github")
+            {
+                try { System.Diagnostics.Process.Start("https://github.com/tasin-py/"); } catch { }
             }
             else if (id == "link:fb")
             {
@@ -166,6 +204,17 @@ namespace LiveWpm
             {
                 store.ResetWords(); store.Save(); dataChanged();
             }
+            else if (id == "set:undo")
+            {
+                SessionUndo last = store.LastSession;
+                if (last == null)
+                    MessageBox.Show(this, "There's no recent session to remove.", Theme.AppName, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                else if (Confirm(name + ", remove your last session (" + LastLabel(last) + ")?" +
+                                 (last.Counted && store.PeakWpm > last.PrevPeakWpm ? " It set your peak speed, so your previous peak comes back." : "")))
+                {
+                    store.RemoveLastSession(); store.Save(); dataChanged();
+                }
+            }
             else if (id == "set:all" && Confirm(name + ", erase ALL stats and history? This can't be undone."))
             {
                 store.ResetAll(); store.Save(); dataChanged();
@@ -184,7 +233,24 @@ namespace LiveWpm
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            Graphics g = e.Graphics;
+            if (!glassOn) { PaintContent(e.Graphics); return; }
+            Bitmap frame = glass.Begin(ClientSize.Width, ClientSize.Height);
+            using (Graphics g = Graphics.FromImage(frame))
+            {
+                g.Clear(Color.Transparent);
+                // the theme's own tint: the floating window's opacity slider doesn't touch this window
+                using (SolidBrush tint = new SolidBrush(Theme.FloatTint)) g.FillRectangle(tint, 0, 0, frame.Width, frame.Height);
+                Theme.AlphaText = true;      // GDI text would punch holes in the see-through frame
+                Theme.TextShadow = Theme.GlassTextShadow;
+                Theme.SetGlassFrame(glass.Bits, frame.Width, frame.Height);
+                try { PaintContent(g); }
+                finally { Theme.AlphaText = false; Theme.TextShadow = 0; Theme.SetGlassFrame(IntPtr.Zero, 0, 0); }
+            }
+            glass.Present(e.Graphics);
+        }
+
+        void PaintContent(Graphics g)
+        {
             Theme.Prepare(g);
             g.ScaleTransform(S, S);
             hits.Clear();
@@ -205,8 +271,7 @@ namespace LiveWpm
             RectangleF gear = new RectangleF(right - 36, 30, 36, 34);
             Pill(g, gear, page == 2, Hov("tab:settings"));
             DrawGear(g, gear.X + gear.Width / 2, gear.Y + gear.Height / 2,
-                     page == 2 || Hov("tab:settings") ? Theme.Text : Theme.Muted,
-                     page == 2 ? Theme.Card : (Hov("tab:settings") ? Theme.CardHover : Theme.Bg));
+                     page == 2 || Hov("tab:settings") ? Theme.Text : Theme.Muted);
             Hit(gear, "tab:settings");
 
             RectangleF hist = new RectangleF(gear.X - 8 - 90, 30, 90, 34);
@@ -224,7 +289,7 @@ namespace LiveWpm
 
         static void Pill(Graphics g, RectangleF r, bool active, bool hover)
         {
-            if (active) Theme.FillRound(g, Theme.Card, r, 9);
+            if (active) Theme.Surface(g, Theme.Card, r, 9);
             else if (hover) Theme.FillRound(g, Theme.CardHover, r, 9);
         }
 
@@ -239,7 +304,7 @@ namespace LiveWpm
             if (today != null && today.Points.Count > 0)
                 Theme.DrawTextRight(g, Theme.Num(today.Points.Count) + (today.Points.Count == 1 ? " run" : " runs") + "  ·  avg wpm per run",
                                     Theme.F(10.5f, false), Theme.Muted, W - 30, 100);
-            Theme.FillRound(g, Theme.Card, TodayGraph, 12);
+            Theme.Surface(g, Theme.Card, TodayGraph, 12);
             SpeedGraph.Draw(g, TodayGraph, today, graphHover, "Your runs today will show up here as you type.", Theme.Card);
 
             float cw = (W - 56 - 32) / 3f;
@@ -267,7 +332,7 @@ namespace LiveWpm
         static void Card(Graphics g, float x, float y, float w, string caption, string value, string unit, string foot, Color valueColor)
         {
             RectangleF r = new RectangleF(x, y, w, 104);
-            Theme.FillRound(g, Theme.Card, r, 12);
+            Theme.Surface(g, Theme.Card, r, 12);
             Theme.DrawText(g, caption, Theme.F(10, true), Theme.Muted, x + 18, y + 14);
             Font big = Theme.F(32, true);
             Theme.DrawText(g, value, big, valueColor, x + 16, y + 30);
@@ -308,7 +373,7 @@ namespace LiveWpm
                 string key = d.Date.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
                 RectangleF row = new RectangleF(28, y, W - 56, RowH - 6);
                 bool hot = Hov("row:" + key) || Hov("del:" + key) || Hov("graph:" + key);
-                Theme.FillRound(g, hot ? Theme.CardHover : Theme.Card, row, 9);
+                Theme.Surface(g, hot ? Theme.CardHover : Theme.Card, row, 9);
 
                 string label = d.Date == today ? "Today" : d.Date == today.AddDays(-1) ? "Yesterday" : d.Date.ToString("ddd, MMM d");
                 Font df = Theme.F(13, true);
@@ -327,8 +392,8 @@ namespace LiveWpm
                 {
                     RectangleF del = new RectangleF(52 + lw + Theme.Measure(g, "0000", Theme.F(11, false)) + 12, y + 7, 28, 26);
                     bool dh = Hov("del:" + key);
-                    if (dh) Theme.FillRound(g, Color.FromArgb(60, Theme.Red), del, 7);
-                    DrawTrash(g, del.X + del.Width / 2, del.Y + del.Height / 2, dh ? Color.FromArgb(255, 110, 110) : Theme.Muted);
+                    if (dh) Theme.FillRound(g, Color.FromArgb(60, Theme.Danger), del, 7);
+                    DrawTrash(g, del.X + del.Width / 2, del.Y + del.Height / 2, dh ? Theme.DangerText : Theme.Muted);
                     Hit(RectangleF.Intersect(del, clip), "del:" + key);
 
                     RectangleF gr = new RectangleF(del.Right + 4, del.Y, 28, 26);
@@ -343,25 +408,36 @@ namespace LiveWpm
 
         // -- settings --
 
+        // Settings: three quiet groups (one surface each, hairline dividers between rows), one line per setting:
+        // the name on the left, its current value and its control on the right.
+        const float SetRowH = 36;
+
         void DrawSettings(Graphics g)
         {
-            Theme.DrawText(g, "SETTINGS", Theme.F(10.5f, true), Theme.Muted, 30, 102);
-            float y = 124;
-            SettingRow(g, ref y, "Typer Name", store.TyperName, "set:name", "Change", false, null);
-            SettingRow(g, ref y, "Start with Windows", "Listed in Startup apps; launches quietly in the tray", "set:startup", null, false, store.StartWithWindows);
-            SettingPair(g, ref y,
-                "Donate", "Support Live WPM via bKash", "set:donate", "Donate",
-                "Updates", Updater.Status, "set:update", Updater.Available != null ? "Update" : (Updater.Busy ? "Checking" : "Check"));
-            SettingPair(g, ref y,
-                "Reset peak speed", "Clears only your peak record", "set:peak", "Reset",
-                "Reset word count", "Lifetime words back to zero", "set:words", "Reset");
-            SettingRow(g, ref y, "Reset all", "Erases every stat and all history (keeps your Typer Name)", "set:all", "Reset all", true, null);
+            float y = 100;
+            RectangleF grp = Group(g, ref y, "GENERAL", 4);
+            ButtonRow(g, Row(grp, 0), "Typer Name", store.TyperName, "set:name", "Change", false);
+            SwitchRow(g, Row(grp, 1), "Start with Windows", "Launches quietly in the tray", "set:startup", store.StartWithWindows);
+            ButtonRow(g, Row(grp, 2), "Theme", Theme.Current.Name, "set:theme", "Change", false);
+            SliderRow(g, Row(grp, 3), "Floating window background");
+
+            SessionUndo last = store.LastSession;
+            grp = Group(g, ref y, "DATA", 4);
+            ButtonRow(g, Row(grp, 0), "Remove last session", last != null ? LastLabel(last) : "Nothing to remove", "set:undo", "Remove", false);
+            ButtonRow(g, Row(grp, 1), "Reset peak speed", null, "set:peak", "Reset", false);
+            ButtonRow(g, Row(grp, 2), "Reset word count", null, "set:words", "Reset", false);
+            ButtonRow(g, Row(grp, 3), "Reset all", "Keeps your name", "set:all", "Reset all", true);
+
+            grp = Group(g, ref y, "ABOUT", 2);
+            ButtonRow(g, Row(grp, 0), "Updates", Updater.Status, "set:update",
+                      Updater.Available != null ? "Update" : (Updater.Busy ? "Checking" : "Check"), false);
+            ButtonRow(g, Row(grp, 1), "Support Live WPM", null, "set:donate", "Buy Me A Coffee", false);
 
             // maker's mark and socials, one quiet centred line
             Font f = Theme.F(11, false);
             Color dim = Color.FromArgb(170, Theme.Muted);
-            string[] parts = { "made by ~ Tasin", "fb.com/tasin.py", discordCopied ? "copied tasin_py" : "discord: tasin_py" };
-            string[] ids = { null, "link:fb", "link:discord" };
+            string[] parts = { "Tasin's Problem", "github.com/tasin-py", "fb.com/tasin.py", discordCopied ? "copied tasin_py" : "discord: tasin_py" };
+            string[] ids = { null, "link:github", "link:fb", "link:discord" };
             const float gap = 12; // space on each side of the separator dots
             float[] widths = new float[parts.Length];
             float total = gap * 2 * (parts.Length - 1);
@@ -373,10 +449,11 @@ namespace LiveWpm
                 if (i > 0)
                 {
                     x += gap;
-                    using (SolidBrush b = new SolidBrush(dim)) g.FillEllipse(b, x - 1.5f, dotY - 1.5f, 3, 3);
+                    if (Theme.Cute) Theme.Heart(g, Color.FromArgb(200, Theme.Accent), x, dotY, 7);
+                    else using (SolidBrush b = new SolidBrush(dim)) g.FillEllipse(b, x - 1.5f, dotY - 1.5f, 3, 3);
                     x += gap;
                 }
-                Color c = ids[i] == null ? dim : (Hov(ids[i]) || (i == 2 && discordCopied) ? Theme.Accent : Theme.Muted);
+                Color c = ids[i] == null ? dim : (Hov(ids[i]) || (ids[i] == "link:discord" && discordCopied) ? Theme.Accent : Theme.Muted);
                 Theme.DrawText(g, parts[i], f, c, x, ty);
                 if (ids[i] != null) Hit(new RectangleF(x - 4, ty - 4, widths[i] + 8, 22), ids[i]);
                 x += widths[i];
@@ -385,59 +462,133 @@ namespace LiveWpm
 
         bool discordCopied;
 
-        void SettingRow(Graphics g, ref float y, string title, string sub, string id, string button, bool danger, bool? toggle)
+        static string LastLabel(SessionUndo u)
         {
-            SettingCard(g, new RectangleF(28, y, W - 56, 52), title, sub, id, button, danger, toggle);
-            y += 60;
+            string when = u.Started.Date == DateTime.Today ? u.Started.ToString("h:mm tt") : u.Started.ToString("MMM d, h:mm tt");
+            return Theme.Num(u.Words) + (u.Words == 1 ? " word" : " words") + " at " + when;
         }
 
-        // Two half-width cards side by side.
-        void SettingPair(Graphics g, ref float y, string t1, string s1, string id1, string b1, string t2, string s2, string id2, string b2)
+        // A small section label, then one surface holding `rows` rows with hairlines between them.
+        RectangleF Group(Graphics g, ref float y, string label, int rows)
         {
-            float w = (W - 56 - 8) / 2f;
-            SettingCard(g, new RectangleF(28, y, w, 52), t1, s1, id1, b1, false, null);
-            SettingCard(g, new RectangleF(28 + w + 8, y, w, 52), t2, s2, id2, b2, false, null);
-            y += 60;
+            Theme.DrawText(g, label, Theme.F(10, true), Theme.Muted, 30, y);
+            RectangleF r = new RectangleF(28, y + 17, W - 56, rows * SetRowH);
+            Theme.Surface(g, Theme.Card, r, 10);
+            using (Pen div = new Pen(Color.FromArgb(Theme.Light ? 24 : 16, Theme.Text), 1))
+                for (int i = 1; i < rows; i++)
+                    g.DrawLine(div, r.X + 16, r.Y + i * SetRowH, r.Right - 16, r.Y + i * SetRowH);
+            y = r.Bottom + 14;
+            return r;
         }
 
-        void SettingCard(Graphics g, RectangleF r, string title, string sub, string id, string button, bool danger, bool? toggle)
+        static RectangleF Row(RectangleF group, int i)
         {
-            Theme.FillRound(g, Theme.Card, r, 10);
-            Theme.DrawText(g, title, Theme.F(13, true), danger ? Color.FromArgb(255, 110, 110) : Theme.Text, r.X + 18, r.Y + 9);
-            Theme.DrawText(g, sub, Theme.F(11, false), Theme.Muted, r.X + 18, r.Y + 28);
+            return new RectangleF(group.X, group.Y + i * SetRowH, group.Width, SetRowH);
+        }
 
-            if (toggle.HasValue)
-            {
-                RectangleF sw = new RectangleF(r.Right - 62, r.Y + 15, 44, 22);
-                TrayMenu.DrawSwitch(g, sw, toggle.Value);
-                Hit(r, id);
-            }
-            else
-            {
-                Font bf = Theme.F(12, true);
-                float bw = Theme.Measure(g, button, bf) + 34;
-                RectangleF b = new RectangleF(r.Right - 16 - bw, r.Y + 11, bw, 30);
-                bool h = Hov(id);
-                Color fill = danger ? Color.FromArgb(h ? 90 : 55, Theme.Red) : (h ? Theme.Lerp(Theme.CardHover, Theme.Accent, 0.25) : Theme.CardHover);
-                Theme.FillRound(g, fill, b, 8);
-                Theme.DrawTextCenter(g, button, bf, danger ? Color.FromArgb(255, 140, 140) : Theme.Text, b.X + bw / 2, b.Y + 7);
-                Hit(b, id);
-            }
+        void RowTitle(Graphics g, RectangleF r, string title, bool danger)
+        {
+            Theme.DrawText(g, title, Theme.F(12.5f, true), danger ? Theme.DangerText : Theme.Text, r.X + 16, r.Y + 10);
+        }
+
+        // Name ... value  [Button]
+        void ButtonRow(Graphics g, RectangleF r, string title, string value, string id, string button, bool danger)
+        {
+            RowTitle(g, r, title, danger);
+            Font bf = Theme.F(11.5f, true);
+            float bw = Theme.Measure(g, button, bf) + 26;
+            RectangleF b = new RectangleF(r.Right - 8 - bw, r.Y + 5, bw, SetRowH - 10);
+            bool h = Hov(id);
+            Color fill = danger ? Color.FromArgb(h ? 80 : 40, Theme.Danger) : (h ? Theme.Lerp(Theme.CardHover, Theme.Accent, 0.25) : Theme.CardHover);
+            Theme.FillRound(g, fill, b, 7);
+            Theme.DrawTextCenter(g, button, bf, danger ? Theme.DangerText : Theme.Text, b.X + bw / 2, b.Y + 6);
+            Hit(b, id);
+            if (!string.IsNullOrEmpty(value))
+                Theme.DrawTextRight(g, value, Theme.F(11.5f, false), Theme.Muted, b.X - 12, r.Y + 11);
+        }
+
+        // Name ... value  (switch) - the whole row toggles it.
+        void SwitchRow(Graphics g, RectangleF r, string title, string value, string id, bool on)
+        {
+            RowTitle(g, r, title, false);
+            RectangleF sw = new RectangleF(r.Right - 12 - 38, r.Y + 8, 38, 20);
+            TrayMenu.DrawSwitch(g, sw, on);
+            Theme.DrawTextRight(g, value, Theme.F(11.5f, false), Theme.Muted, sw.X - 12, r.Y + 11);
+            Hit(r, id);
+        }
+
+        // Floating window background: a slider, 0-100 %.
+        RectangleF sliderTrack;
+        bool sliding;
+        string pressed;    // what the left button went down on
+
+        void SliderRow(Graphics g, RectangleF r, string title)
+        {
+            RowTitle(g, r, title, false);
+            sliderTrack = new RectangleF(r.Right - 20 - 140, r.Y + SetRowH / 2 - 2, 140, 4);
+            float frac = store.FloatBgOpacity / 100f;
+            Theme.FillRound(g, Theme.Track, sliderTrack, 2);
+            if (frac > 0) Theme.FillAccent(g, new RectangleF(sliderTrack.X, sliderTrack.Y, sliderTrack.Width * frac, 4), 2);
+            float kx = sliderTrack.X + sliderTrack.Width * frac;
+            bool hot = sliding || Hov("slider:bg");
+            float kr = hot ? 7.5f : 6.5f;
+            using (SolidBrush k = new SolidBrush(Theme.Text)) g.FillEllipse(k, kx - kr, sliderTrack.Y + 2 - kr, kr * 2, kr * 2);
+            Theme.DrawTextRight(g, store.FloatBgOpacity + "%", Theme.F(11.5f, false), hot ? Theme.Text : Theme.Muted, sliderTrack.X - 14, r.Y + 11);
+            Hit(new RectangleF(sliderTrack.X - 10, r.Y, sliderTrack.Width + 20, SetRowH), "slider:bg");
+        }
+
+        void SetTheme(string id)
+        {
+            store.ThemeName = id;
+            store.Save();
+            Theme.Apply(id);
+            Theme.DarkTitleBar(Handle);
+            ApplyGlass();
+            OnScaleChanged();   // the logo's arc follows the theme
+            appearanceChanged();
+            Invalidate();
+        }
+
+        void SlideTo(float x)
+        {
+            int v = (int)Math.Round((x / S - sliderTrack.X) / sliderTrack.Width * 20) * 5; // steps of 5 %
+            v = Math.Max(0, Math.Min(100, v));
+            if (v == store.FloatBgOpacity) return;
+            store.FloatBgOpacity = v;
+            appearanceChanged();
+            Invalidate();
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            base.OnMouseDown(e);
+            if (e.Button != MouseButtons.Left) return;
+            pressed = HitAt(e.Location);
+            if (pressed != "slider:bg") return;
+            sliding = true;
+            Capture = true;
+            SlideTo(e.X);
         }
 
         // -- icons --
 
-        static void DrawGear(Graphics g, float cx, float cy, Color c, Color bg)
+        static void DrawGear(Graphics g, float cx, float cy, Color c)
         {
             using (Pen teeth = new Pen(c, 3.4f))
                 for (int i = 0; i < 8; i++)
                 {
                     double a = i * Math.PI / 4;
-                    g.DrawLine(teeth, cx + (float)Math.Cos(a) * 5, cy + (float)Math.Sin(a) * 5,
+                    g.DrawLine(teeth, cx + (float)Math.Cos(a) * 7, cy + (float)Math.Sin(a) * 7,
                                       cx + (float)Math.Cos(a) * 9.5f, cy + (float)Math.Sin(a) * 9.5f);
                 }
-            using (SolidBrush b = new SolidBrush(c)) g.FillEllipse(b, cx - 7, cy - 7, 14, 14);
-            using (SolidBrush h = new SolidBrush(bg)) g.FillEllipse(h, cx - 3, cy - 3, 6, 6);
+            // a ring, so the hole shows whatever is behind it (glass cards are see-through)
+            using (GraphicsPath ring = new GraphicsPath(FillMode.Alternate))
+            using (SolidBrush b = new SolidBrush(c))
+            {
+                ring.AddEllipse(cx - 7, cy - 7, 14, 14);
+                ring.AddEllipse(cx - 3, cy - 3, 6, 6);
+                g.FillPath(b, ring);
+            }
         }
 
         static void DrawTrash(Graphics g, float cx, float cy, Color c)
@@ -470,12 +621,12 @@ namespace LiveWpm
         protected override void OnScaleChanged()
         {
             logo.Dispose();
-            logo = Theme.Logo((int)(38 * S), Theme.Accent);
+            logo = Theme.Logo((int)(38 * S), Theme.LogoAccent);
         }
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing) logo.Dispose();
+            if (disposing) { logo.Dispose(); glass.Dispose(); }
             base.Dispose(disposing);
         }
     }

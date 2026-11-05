@@ -50,7 +50,7 @@ namespace LiveWpm
             Graphics g = e.Graphics;
             Theme.Prepare(g);
             g.ScaleTransform(S, S);
-            g.Clear(Theme.Bg);
+            Theme.PaintBackground(g, W, H);
 
             DateTime today = DateTime.Today;
             string title = day.Date == today ? "Today" : day.Date == today.AddDays(-1) ? "Yesterday" : day.Date.ToString("dddd, MMM d");
@@ -79,7 +79,7 @@ namespace LiveWpm
             }
             DrawClose(g);
 
-            Theme.FillRound(g, Theme.Card, GraphRect, 12);
+            Theme.Surface(g, Theme.Card, GraphRect, 12);
             SpeedGraph.Draw(g, GraphRect, day, hoverPoint,
                 day.Words > 0 ? "No graph for this day. Speed graphs are recorded from today onward." : "No runs this day.",
                 Theme.Card);
@@ -87,7 +87,7 @@ namespace LiveWpm
 
         void DrawClose(Graphics g)
         {
-            if (hoverClose) Theme.FillRound(g, Theme.Red, CloseRect, 7);
+            if (hoverClose) Theme.FillRound(g, Theme.Danger, CloseRect, 7);
             float cx = CloseRect.X + CloseRect.Width / 2, cy = CloseRect.Y + CloseRect.Height / 2;
             using (Pen p = new Pen(hoverClose ? Color.White : Theme.Muted, 1.6f))
             {

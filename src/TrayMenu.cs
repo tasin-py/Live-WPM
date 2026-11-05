@@ -35,7 +35,7 @@ namespace LiveWpm
             ShowInTaskbar = false;
             TopMost = true;
             StartPosition = FormStartPosition.Manual;
-            logo = Theme.Logo((int)(26 * S), Theme.Accent);
+            logo = Theme.Logo((int)(26 * S), Theme.LogoAccent);
 
             Add("Enabled", "Track typing speed", delegate { return store.Tracking; }, toggleTracking);
             Add("Floating window", "Speedometer in the corner", delegate { return store.Floating; }, toggleFloating);
@@ -109,7 +109,7 @@ namespace LiveWpm
             Graphics g = e.Graphics;
             Theme.Prepare(g);
             g.ScaleTransform(S, S);
-            Theme.FillRound(g, Theme.Bg, new RectangleF(0, 0, W, height), 12);
+            Theme.PaintBackground(g, W, height);
 
             g.DrawImage(logo, new RectangleF(16, 16, 26, 26));
             Theme.DrawText(g, Theme.AppName, Theme.F(14, true), Theme.Text, 52, 14);
@@ -131,7 +131,7 @@ namespace LiveWpm
                 }
                 else
                 {
-                    Color c = it.Danger ? Color.FromArgb(255, 110, 110) : Theme.Text;
+                    Color c = it.Danger ? Theme.DangerText : Theme.Text;
                     Theme.DrawText(g, it.Label, Theme.F(13, false), c, r.X + 10, r.Y + 9);
                 }
             }
@@ -139,10 +139,10 @@ namespace LiveWpm
 
         public static void DrawSwitch(Graphics g, RectangleF r, bool on)
         {
-            Theme.FillRound(g, on ? Theme.Accent : Theme.Track, r, r.Height / 2);
+            if (on) Theme.FillAccent(g, r, r.Height / 2); else Theme.FillRound(g, Theme.Track, r, r.Height / 2);
             float d = r.Height - 6;
             float x = on ? r.Right - d - 3 : r.X + 3;
-            using (SolidBrush knob = new SolidBrush(on ? Color.FromArgb(10, 20, 28) : Theme.Muted))
+            using (SolidBrush knob = new SolidBrush(on ? Theme.OnAccent : Theme.Muted))
                 g.FillEllipse(knob, x, r.Y + 3, d, d);
         }
 
@@ -184,10 +184,16 @@ namespace LiveWpm
             if (e.KeyCode == Keys.Escape) Hide();
         }
 
+        public void ThemeChanged()
+        {
+            OnScaleChanged(); // the logo is drawn on the theme's background
+            Invalidate();
+        }
+
         protected override void OnScaleChanged()
         {
             logo.Dispose();
-            logo = Theme.Logo((int)(26 * S), Theme.Accent);
+            logo = Theme.Logo((int)(26 * S), Theme.LogoAccent);
         }
 
         protected override void Dispose(bool disposing)

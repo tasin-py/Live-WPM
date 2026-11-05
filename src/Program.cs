@@ -10,8 +10,8 @@ using Microsoft.Win32;
 [assembly: AssemblyProduct("Live WPM")]
 [assembly: AssemblyDescription("Live WPM - live typing speedometer")]
 [assembly: AssemblyCompany("Live WPM")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.6.0.0")]
+[assembly: AssemblyFileVersion("1.6.0.0")]
 
 namespace LiveWpm
 {
@@ -70,7 +70,10 @@ namespace LiveWpm
         {
             ui.CreateControl(); // gives us a UI-thread handle for cross-thread calls
 
+            ThemeFiles.LoadAll();   // before the stats, which name the theme last used
             store = DataStore.Load();
+            // Opens in the theme the Typer last picked (a first run gets the stock theme, Average Tasin).
+            Theme.Apply(store.ThemeName);
             if (string.IsNullOrEmpty(store.TyperName))
             {
                 store.TyperName = NamePrompt.Ask("", true, null) ?? "Typer";
@@ -88,7 +91,7 @@ namespace LiveWpm
             tick.Tick += delegate { engine.Tick(); if (engine.Phase == Phase.Idle) tick.Stop(); };
 
             int small = (int)(16 * Theme.Scale);
-            iconOn = Theme.MakeIcon(small, Theme.Accent);
+            iconOn = Theme.MakeIcon(small, Theme.Brand);
             iconOff = Theme.MakeIcon(small, Theme.Off);
             tray.Visible = true;
             tray.MouseClick += OnTrayClick;
@@ -170,13 +173,20 @@ namespace LiveWpm
             else floating.Disappear();
         }
 
+        // Theme or floating background changed in Settings: restyle everything and flash the speedometer as a preview.
+        void AppearanceChanged()
+        {
+            menu.ThemeChanged();
+            if (floating != null) floating.Preview();
+        }
+
         // ---- windows -------------------------------------------------------------------
 
         void ShowMain()
         {
             if (main == null || main.IsDisposed)
             {
-                main = new MainWindow(store, ApplyStartup, delegate { if (floating != null) floating.Kick(); });
+                main = new MainWindow(store, ApplyStartup, delegate { if (floating != null) floating.Kick(); }, AppearanceChanged);
                 main.FormClosed += delegate { main = null; Theme.TrimMemory(); };
                 main.Show();
             }

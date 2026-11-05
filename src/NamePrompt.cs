@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -26,10 +26,10 @@ namespace LiveWpm
             TopMost = firstRun;
             SetLogicalSize(W, H);
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
-            logo = Theme.Logo((int)(30 * S), Theme.Accent);
+            logo = Theme.Logo((int)(30 * S), Theme.LogoAccent);
 
             box.BorderStyle = BorderStyle.None;
-            box.BackColor = Theme.Card;
+            box.BackColor = Theme.CardSolid;
             box.ForeColor = Theme.Text;
             box.Font = Theme.F(15 * S, false);
             box.MaxLength = 32;
@@ -79,10 +79,10 @@ namespace LiveWpm
             Theme.DrawText(g, firstRun ? "What should " + Theme.AppName + " call you?" : "This is how " + Theme.AppName + " greets you.",
                            Theme.F(12, false), Theme.Muted, 65, 43);
             Theme.DrawText(g, "TYPER NAME", Theme.F(10, true), Theme.Muted, 26, 80);
-            Theme.FillRound(g, Theme.Card, new RectangleF(24, 98, W - 48, 44), 9);
+            Theme.FillRound(g, Theme.CardSolid, new RectangleF(24, 98, W - 48, 44), 9);
             Theme.StrokeRound(g, box.Focused ? Theme.Accent : Theme.Border, new RectangleF(24, 98, W - 48, 44), 9, 1.2f);
-            Theme.FillRound(g, hoverBtn ? Theme.Lerp(Theme.Accent, Color.White, 0.2) : Theme.Accent, btn, 9);
-            Theme.DrawTextCenter(g, firstRun ? "Let's type" : "Save", Theme.F(13.5f, true), Color.FromArgb(8, 18, 26), btn.X + btn.Width / 2, btn.Y + 10);
+            if (hoverBtn) Theme.FillRound(g, Theme.Lerp(Theme.Accent, Color.White, 0.2), btn, 9); else Theme.FillAccent(g, btn, 9);
+            Theme.DrawTextCenter(g, firstRun ? "Let's type" : "Save", Theme.F(13.5f, true), Theme.OnAccent, btn.X + btn.Width / 2, btn.Y + 10);
         }
 
         protected override void OnMouseMove(MouseEventArgs e)
@@ -116,7 +116,7 @@ namespace LiveWpm
         {
             LayoutBox();
             logo.Dispose();
-            logo = Theme.Logo((int)(30 * S), Theme.Accent);
+            logo = Theme.Logo((int)(30 * S), Theme.LogoAccent);
         }
 
         protected override void Dispose(bool disposing)
