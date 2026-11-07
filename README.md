@@ -477,7 +477,7 @@ gh release create v1.6.0 "versions/v1.6.0/Live WPM.exe" --title "Live WPM 1.6.0"
 Within a day, every running copy shows the update notification.
 
 > [!WARNING]
-> The tag must be **higher** than the version inside the exe, or nobody gets the update. If you fork this project, set `Repo` in [`src/Updater.cs`](src/Updater.cs) to your own `owner/repository`, or the updater will look at the wrong place.
+> The tag must **match** the version inside the new exe (`v1.6.0` for `1.6.0.0`) and be **higher** than the previous release. A copy only updates when the tag is higher than its own version. A lower tag means nobody gets the update. A tag higher than the new exe's version means people who update are offered the same update again every day. If you fork this project, set `Repo` in [`src/Updater.cs`](src/Updater.cs) to your own `owner/repository`, or the updater will look at the wrong place.
 
 ---
 
