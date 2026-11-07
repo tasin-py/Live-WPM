@@ -234,6 +234,10 @@ Every one of these asks for confirmation first and can't be undone.
 
 ### Themes
 
+<p align="center">
+  <img src="docs/images/theme-picker.png" width="600" alt="The theme picker with the seven built-in themes, a custom theme and the Upload theme and Get starter file buttons">
+</p>
+
 | Theme | Look |
 |---|---|
 | **Average Tasin** | The original: flat dark grey (#323437) with a cyan accent. The default. |
@@ -243,6 +247,12 @@ Every one of these asks for confirmation first and can't be undone.
 | **Ziraf Minimal** | Minimal and dark: black surfaces with only white and grey on them, including the floating speedometer. |
 | **Adib Red** | Deep wine-black with a crimson accent. Near the top of the dial the arc turns gold. |
 | **Safir Glass** | Deep sky-blue glass with a 3D look: raised panes with a lit top edge and a soft shadow, and no colour washes. The floating speedometer shows your blurred desktop with a light deep-blue tint, and the main window uses the same look in deep navy. The opacity slider changes only the speedometer. Needs Windows **Transparency effects** turned on. |
+
+<p align="center">
+  <img src="docs/images/speedometer-glass.png" width="300" alt="The Safir Glass floating speedometer showing a blurred, colourful background through its glass">
+  <br>
+  <sub>The Safir Glass speedometer over a colourful background</sub>
+</p>
 
 #### Make your own theme
 
