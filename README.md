@@ -11,7 +11,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-38D6FF?style=flat-square&logo=windows&logoColor=white" alt="Windows 10 | 11">
-  <img src="https://img.shields.io/badge/size-~135%20KB-38D6FF?style=flat-square" alt="Size about 135 KB">
+  <img src="https://img.shields.io/badge/size-~125%20KB-38D6FF?style=flat-square" alt="Size about 125 KB">
   <img src="https://img.shields.io/badge/install-not%20needed-38D6FF?style=flat-square" alt="No install needed">
   <img src="https://img.shields.io/badge/keys%20recorded-none-38D6FF?style=flat-square" alt="No keys recorded">
   <img src="https://img.shields.io/github/v/release/tasin-py/Live-WPM?style=flat-square&color=38D6FF" alt="Latest release">
@@ -61,9 +61,10 @@
 
 ## What's new
 
-**1.6** (current: 1.6.0)
+**1.6** (current: 1.6.1)
 
 - **Your own themes**: upload a small theme file from the theme picker and it joins the built-in themes. See [Make your own theme](#make-your-own-theme).
+- **New way to support the project** (1.6.1): **Buy Me A Coffee** now shows a SupportKori QR code and link, with **Open link** and **Copy link** buttons.
 
 **1.5**
 
@@ -93,7 +94,7 @@
 | **Ignores games** | Key presses are skipped while a full-screen app is in front, and runs full of held-down keys are thrown out. |
 | **Ignores shortcuts** | Ctrl, Alt and Win shortcuts and key auto-repeat are never counted. |
 | **One switch to stop** | Turn tracking off from the tray and the app ignores your keyboard completely. |
-| **Light** | One ~135 KB exe. No installer, no runtime to download, and next to no CPU while idle. |
+| **Light** | One ~125 KB exe. No installer, no runtime to download, and next to no CPU while idle. |
 | **Sharp on any display** | Per-monitor DPI support keeps text crisp at 100%, 150%, 200% and on mixed-scale setups. |
 | **Undo a run** | Remove the last session, and the peak it set goes back to what it was before. |
 | **Self-updating** | Checks once a day for a new version and updates when you say so. |
@@ -230,7 +231,7 @@ Every one of these asks for confirmation first and can't be undone.
 | Setting | What it does |
 |---|---|
 | **Updates** | Shows your version and checks for, or installs, a new one. |
-| **Support Live WPM** | **Buy Me A Coffee** shows the bKash QR code for supporting the project. |
+| **Support Live WPM** | **Buy Me A Coffee** shows a QR code and link to support the project on SupportKori, with buttons to open or copy the link. |
 
 ### Themes
 
@@ -431,7 +432,7 @@ cd Live-WPM
 powershell -ExecutionPolicy Bypass -File build.ps1
 ```
 
-The result goes in its own folder per version, named from `AssemblyVersion` in `src\Program.cs`. For example, version 1.6.0 builds to `versions\v1.6.0\Live WPM.exe`. Earlier builds stay in their own folders, so building a new version never overwrites an old one.
+The result goes in its own folder per version, named from `AssemblyVersion` in `src\Program.cs`. For example, version 1.6.1 builds to `versions\v1.6.1\Live WPM.exe`. Earlier builds stay in their own folders, so building a new version never overwrites an old one.
 
 **What the build does**
 
@@ -459,25 +460,25 @@ Releases drive the in-app updater, so the steps must be followed exactly.
 
 1. Raise the version in `src/Program.cs`:
    ```csharp
-   [assembly: AssemblyVersion("1.6.0.0")]
-   [assembly: AssemblyFileVersion("1.6.0.0")]
+   [assembly: AssemblyVersion("1.6.1.0")]
+   [assembly: AssemblyFileVersion("1.6.1.0")]
    ```
 2. Build with `build.ps1`.
 3. On GitHub, go to **Releases → Draft a new release**.
-4. Create a tag that matches the version: **`v1.6.0`**.
-5. Attach **only** `versions\v1.6.0\Live WPM.exe` (the folder for the new version), not the whole folder.
+4. Create a tag that matches the version: **`v1.6.1`**.
+5. Attach **only** `versions\v1.6.1\Live WPM.exe` (the folder for the new version), not the whole folder.
 6. Write what changed, then click **Publish release**.
 
 Or do it all from a terminal with the GitHub CLI:
 
 ```powershell
-gh release create v1.6.0 "versions/v1.6.0/Live WPM.exe" --title "Live WPM 1.6.0" --notes "What changed"
+gh release create v1.6.1 "versions/v1.6.1/Live WPM.exe" --title "Live WPM 1.6.1" --notes "What changed"
 ```
 
 Within a day, every running copy shows the update notification.
 
 > [!WARNING]
-> The tag must **match** the version inside the new exe (`v1.6.0` for `1.6.0.0`) and be **higher** than the previous release. A copy only updates when the tag is higher than its own version. A lower tag means nobody gets the update. A tag higher than the new exe's version means people who update are offered the same update again every day. If you fork this project, set `Repo` in [`src/Updater.cs`](src/Updater.cs) to your own `owner/repository`, or the updater will look at the wrong place.
+> The tag must **match** the version inside the new exe (`v1.6.1` for `1.6.1.0`) and be **higher** than the previous release. A copy only updates when the tag is higher than its own version. A lower tag means nobody gets the update. A tag higher than the new exe's version means people who update are offered the same update again every day. If you fork this project, set `Repo` in [`src/Updater.cs`](src/Updater.cs) to your own `owner/repository`, or the updater will look at the wrong place.
 
 ---
 
@@ -500,7 +501,7 @@ Live WPM/
     ├── DayGraphWindow.cs     Pop-up graph for one day in History
     ├── TrayMenu.cs           The tray quick menu
     ├── NamePrompt.cs         Typer Name dialog
-    ├── DonateWindow.cs       bKash donation QR
+    ├── DonateWindow.cs       SupportKori QR and link
     ├── Updater.cs            GitHub release check and self-update
     ├── Theme.cs              Themes, colours, fonts, text drawing, DPI-aware window base
     ├── ThemePicker.cs        The theme picker window
@@ -515,7 +516,7 @@ Live WPM/
 
 ## Support
 
-Live WPM is free. If it's useful to you, you can support it through **bKash**: open the app and go to **Settings → Buy Me A Coffee** to scan the QR code.
+Live WPM is free. If it's useful to you, you can support it on [SupportKori](https://www.supportkori.com/tasinpy), or open the app and go to **Settings → Buy Me A Coffee** to scan the QR code.
 
 Found a bug or have an idea? [Open an issue](https://github.com/tasin-py/Live-WPM/issues).
 

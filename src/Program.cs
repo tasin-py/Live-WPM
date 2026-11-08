@@ -10,8 +10,8 @@ using Microsoft.Win32;
 [assembly: AssemblyProduct("Live WPM")]
 [assembly: AssemblyDescription("Live WPM - live typing speedometer")]
 [assembly: AssemblyCompany("Live WPM")]
-[assembly: AssemblyVersion("1.6.0.0")]
-[assembly: AssemblyFileVersion("1.6.0.0")]
+[assembly: AssemblyVersion("1.6.1.0")]
+[assembly: AssemblyFileVersion("1.6.1.0")]
 
 namespace LiveWpm
 {
