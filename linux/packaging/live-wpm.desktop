@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Live WPM
+GenericName=Typing speedometer
+Comment=See how fast you type, live, in any app
+Exec=live-wpm
+Icon=live-wpm
+Terminal=false
+Categories=Utility;
+Keywords=typing;wpm;speed;keyboard;

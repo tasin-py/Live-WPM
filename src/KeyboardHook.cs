@@ -5,9 +5,6 @@ using System.Runtime.InteropServices;
 
 namespace LiveWpm
 {
-    // LongPress = a character key was held down for a long time (typical in games, rare in typing).
-    enum KeyKind { Char, WordBreak, Backspace, LongPress }
-
     // Global low-level keyboard hook.
     //
     // PRIVACY: the callback only decides which *kind* of key was pressed (a character,

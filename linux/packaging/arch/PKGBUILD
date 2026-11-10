@@ -1,0 +1,39 @@
+# Live WPM for Arch Linux, built from source against Arch's own .NET runtime.
+#   makepkg -si
+# Maintainer: tasin-py <https://github.com/tasin-py>
+pkgname=live-wpm
+pkgver=1.7.0
+pkgrel=1
+pkgdesc="A live typing speedometer: see how fast you type in any app, without recording a single key"
+arch=('x86_64' 'aarch64')
+url="https://github.com/tasin-py/Live-WPM"
+license=('unknown')
+depends=('dotnet-runtime>=10.0' 'fontconfig' 'libx11' 'libice' 'libsm' 'libxi' 'libxcursor' 'libxrandr' 'libxext')
+makedepends=('dotnet-sdk>=10.0' 'git')
+optdepends=('libnotify: a notification when an update is out'
+            'xdg-utils: open links in your browser')
+install=live-wpm.install
+options=('!strip' '!debug')
+source=("$pkgname::git+https://github.com/tasin-py/Live-WPM.git#tag=v$pkgver")
+sha256sums=('SKIP')
+
+_rid() { [ "$CARCH" = "aarch64" ] && echo linux-arm64 || echo linux-x64; }
+
+prepare() {
+    cd "$pkgname/linux"
+    dotnet restore LiveWpm.Linux.csproj -r "$(_rid)"
+}
+
+build() {
+    cd "$pkgname/linux"
+    dotnet publish LiveWpm.Linux.csproj -c Release -r "$(_rid)" --self-contained false --no-restore \
+        -p:DebugType=none -nologo -o "$srcdir/out"
+}
+
+package() {
+    install -d "$pkgdir/usr/lib/$pkgname" "$pkgdir/usr/bin"
+    cp -a "$srcdir/out/." "$pkgdir/usr/lib/$pkgname/"
+    ln -s "/usr/lib/$pkgname/live-wpm" "$pkgdir/usr/bin/live-wpm"
+    install -Dm644 "$pkgname/linux/assets/live-wpm.png" "$pkgdir/usr/share/icons/hicolor/256x256/apps/live-wpm.png"
+    install -Dm644 "$pkgname/linux/packaging/live-wpm.desktop" "$pkgdir/usr/share/applications/live-wpm.desktop"
+}

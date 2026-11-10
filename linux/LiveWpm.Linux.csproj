@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Live WPM for Linux. The typing engine, stats file, theme files, theme list and speed graph
+       are the very same source files the Windows app uses (../src); everything here is the Linux side. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>LiveWpm</RootNamespace>
+    <AssemblyName>live-wpm</AssemblyName>
+    <Version>1.7.0</Version>
+    <Product>Live WPM</Product>
+    <Description>Live WPM - live typing speedometer</Description>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- The shared files are written for the Windows compiler (C# 5); a few modern hints are just noise here. -->
+    <NoWarn>$(NoWarn);CS0649;CA1416</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../src/TypingEngine.cs" Link="Shared/TypingEngine.cs" />
+    <Compile Include="../src/DataStore.cs" Link="Shared/DataStore.cs" />
+    <Compile Include="../src/ThemeFiles.cs" Link="Shared/ThemeFiles.cs" />
+    <Compile Include="../src/Palettes.cs" Link="Shared/Palettes.cs" />
+    <Compile Include="../src/SpeedGraph.cs" Link="Shared/SpeedGraph.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="../src/assets/supportkori_qr.png" LogicalName="supportkori_qr.png" />
+    <EmbeddedResource Include="assets/live-wpm.png" LogicalName="live-wpm.png" />
+    <EmbeddedResource Include="assets/live-wpm-off.png" LogicalName="live-wpm-off.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.23" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.23" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.23" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.23" />
+  </ItemGroup>
+
+</Project>

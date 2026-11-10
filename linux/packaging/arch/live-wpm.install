@@ -1,0 +1,10 @@
+_note() {
+    if ! id -nG "${SUDO_USER:-$USER}" 2>/dev/null | tr ' ' '\n' | grep -qx input; then
+        echo ">>> Live WPM reads your keyboard device to measure your speed (only the kind of key,"
+        echo ">>> never which key). Allow it once, then log out and back in:"
+        echo ">>>     sudo usermod -aG input \$USER"
+    fi
+}
+
+post_install() { _note; }
+post_upgrade() { _note; }

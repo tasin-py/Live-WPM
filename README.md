@@ -5,23 +5,26 @@
 <h1 align="center">Live WPM</h1>
 
 <p align="center">
-  <b>A live typing speedometer for Windows.</b><br>
+  <b>A live typing speedometer for Windows and Linux.</b><br>
   See how fast you type while you type: in any app, with no setup, and without recording a single key.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-38D6FF?style=flat-square&logo=windows&logoColor=white" alt="Windows 10 | 11">
-  <img src="https://img.shields.io/badge/size-~125%20KB-38D6FF?style=flat-square" alt="Size about 125 KB">
+  <img src="https://img.shields.io/badge/Linux-Arch%20%7C%20X11%20%7C%20Wayland-38D6FF?style=flat-square&logo=linux&logoColor=white" alt="Linux: Arch, X11 and Wayland">
+  <img src="https://img.shields.io/badge/Windows%20exe-~125%20KB-38D6FF?style=flat-square" alt="Windows exe about 125 KB">
   <img src="https://img.shields.io/badge/install-not%20needed-38D6FF?style=flat-square" alt="No install needed">
   <img src="https://img.shields.io/badge/keys%20recorded-none-38D6FF?style=flat-square" alt="No keys recorded">
   <img src="https://img.shields.io/github/v/release/tasin-py/Live-WPM?style=flat-square&color=38D6FF" alt="Latest release">
 </p>
 
 <p align="center">
-  <a href="https://github.com/tasin-py/Live-WPM/releases/latest"><b>Download</b></a> ·
+  <a href="https://github.com/tasin-py/Live-WPM/releases/latest"><b>Download for Windows</b></a> ·
+  <a href="#linux"><b>Download for Linux</b></a> ·
   <a href="#whats-new">What's new</a> ·
   <a href="#features">Features</a> ·
   <a href="#privacy">Privacy</a> ·
+  <a href="#linux">Linux</a> ·
   <a href="#using-live-wpm">Guide</a> ·
   <a href="#faq">FAQ</a> ·
   <a href="#building-from-source">Build</a>
@@ -40,6 +43,11 @@
 - [Privacy](#privacy)
 - [Requirements](#requirements)
 - [Installation](#installation)
+- [Linux](#linux)
+  - [Install on Arch Linux](#install-on-arch-linux)
+  - [Install on any distro](#install-on-any-distro)
+  - [Allow keyboard access](#allow-keyboard-access)
+  - [Troubleshooting on Linux](#troubleshooting-on-linux)
 - [Using Live WPM](#using-live-wpm)
   - [The tray icon](#the-tray-icon)
   - [The floating speedometer](#the-floating-speedometer)
@@ -61,7 +69,12 @@
 
 ## What's new
 
-**1.6** (current: 1.6.1)
+**1.7** (current: 1.7.0)
+
+- **Live WPM for Linux**: the same app, themes, stats and speedometer, now on Linux. Tested first on Arch Linux, and works under both X11 and Wayland. See [Linux](#linux).
+- **Windows**: no visible changes. The theme list moved into a file both editions share.
+
+**1.6**
 
 - **Your own themes**: upload a small theme file from the theme picker and it joins the built-in themes. See [Make your own theme](#make-your-own-theme).
 - **New way to support the project** (1.6.1): **Buy Me A Coffee** now shows a SupportKori QR code and link, with **Open link** and **Copy link** buttons.
@@ -92,9 +105,10 @@
 | **Themes** | Seven built-in looks, from flat dark grey to pink, black-and-gold, all-white-on-black and see-through glass, plus up to nine of your own. |
 | **History** | One row per day with peak speed, average speed and word count. You can delete any day. |
 | **Ignores games** | Key presses are skipped while a full-screen app is in front, and runs full of held-down keys are thrown out. |
-| **Ignores shortcuts** | Ctrl, Alt and Win shortcuts and key auto-repeat are never counted. |
+| **Ignores shortcuts** | Ctrl, Alt and Win (Super) shortcuts and key auto-repeat are never counted. |
 | **One switch to stop** | Turn tracking off from the tray and the app ignores your keyboard completely. |
-| **Light** | One ~125 KB exe. No installer, no runtime to download, and next to no CPU while idle. |
+| **Light** | On Windows, one ~125 KB exe. No installer, no runtime to download, and next to no CPU while idle. |
+| **Linux too** | The same app for Linux: a tray icon, the floating speedometer and every theme, on X11 and Wayland. |
 | **Sharp on any display** | Per-monitor DPI support keeps text crisp at 100%, 150%, 200% and on mixed-scale setups. |
 | **Undo a run** | Remove the last session, and the peak it set goes back to what it was before. |
 | **Self-updating** | Checks once a day for a new version and updates when you say so. |
@@ -126,12 +140,22 @@ Live WPM is built so that it **cannot** tell anyone what you typed, including yo
 
 ## Requirements
 
+**Windows**
+
 - Windows 10 or Windows 11 (64-bit or 32-bit)
 - .NET Framework 4.x, which is already part of every Windows 10 and 11 install
+
+**Linux**
+
+- A 64-bit Linux desktop (x86-64). Tested first on **Arch Linux**, and it works on X11 and Wayland sessions alike.
+- Nothing else to install for the download: it carries everything it needs. The Arch package uses Arch's own `dotnet-runtime`.
+- Your account in the `input` group, once, so Live WPM can read the keyboard (see [Allow keyboard access](#allow-keyboard-access)).
 
 ---
 
 ## Installation
+
+### Windows
 
 1. Download **`Live WPM.exe`** from the [latest release](https://github.com/tasin-py/Live-WPM/releases/latest).
 2. Move it to a folder you'll keep, for example `C:\Users\<you>\Apps\Live WPM\`.
@@ -145,6 +169,233 @@ Live WPM now runs in the system tray, next to the clock. Start typing anywhere a
 
 > [!TIP]
 > If you don't see the icon, click the **^** arrow in the taskbar's notification area. You can drag the icon out of there to keep it always visible.
+
+### On Linux
+
+See **[Linux](#linux)** below for the Arch package, the download for any distro and the one-time keyboard step.
+
+---
+
+## Linux
+
+Live WPM for Linux is the same app as on Windows: the tray icon, the floating speedometer, Home, History, Settings, all seven themes, your own `.lwtheme` files and the same stats file. It lives in this repository, next to the Windows app, and every release has a download for each.
+
+**Arch Linux is the first supported distro.** The Linux edition reads the keyboard straight from the kernel, so it works the same in X11 and Wayland sessions.
+
+- [What you need](#what-you-need)
+- [Install on Arch Linux](#install-on-arch-linux)
+- [Install on any distro](#install-on-any-distro)
+- [Allow keyboard access](#allow-keyboard-access)
+- [First start](#first-start)
+- [The tray icon on your desktop](#the-tray-icon-on-your-desktop)
+- [Start on login](#start-on-login)
+- [Updating on Linux](#updating-on-linux)
+- [Moving your stats from Windows](#moving-your-stats-from-windows)
+- [Uninstalling on Linux](#uninstalling-on-linux)
+- [Troubleshooting on Linux](#troubleshooting-on-linux)
+- [How it differs from Windows](#how-it-differs-from-windows)
+
+### What you need
+
+- A 64-bit (x86-64) Linux PC with a desktop: KDE Plasma, GNOME, Xfce, Cinnamon, MATE, Hyprland, Sway or similar.
+- An X11 or a Wayland session. Both work.
+- Your account in the `input` group (a one-time step, explained [below](#allow-keyboard-access)).
+- **For the download:** nothing else. It carries everything it needs, .NET included.
+- **For the Arch package:** `git` and `base-devel` to build it. The package then uses Arch's own .NET runtime, which pacman installs for you.
+
+### Install on Arch Linux
+
+The Arch way: build a real package with `makepkg` and let pacman install it. It goes to `/usr/lib/live-wpm`, with `live-wpm` on your PATH, an app-menu entry and an icon, and pacman can remove it cleanly later.
+
+1. Install the build tools, if you don't have them:
+   ```bash
+   sudo pacman -S --needed git base-devel
+   ```
+2. Get the source:
+   ```bash
+   git clone https://github.com/tasin-py/Live-WPM.git
+   ```
+3. Build and install the package. pacman asks for your password and pulls in `dotnet-sdk` (to build) and `dotnet-runtime` (to run):
+   ```bash
+   cd Live-WPM/linux/packaging/arch && makepkg -si
+   ```
+4. Allow keyboard access, if pacman's message asks you to (see [Allow keyboard access](#allow-keyboard-access)).
+5. Open **Live WPM** from your app menu, or run `live-wpm`.
+
+> [!TIP]
+> The build checks out the release tagged in the PKGBUILD (`pkgver`), so you always get a released version, not work in progress.
+
+### Install on any distro
+
+The download is one self-contained program plus a small installer. It works on Arch too, if you'd rather not build a package.
+
+1. Download **`live-wpm-linux-x64.tar.gz`** from the [latest release](https://github.com/tasin-py/Live-WPM/releases/latest), or from a terminal:
+   ```bash
+   curl -LO https://github.com/tasin-py/Live-WPM/releases/latest/download/live-wpm-linux-x64.tar.gz
+   ```
+2. Unpack it:
+   ```bash
+   tar -xzf live-wpm-linux-x64.tar.gz
+   ```
+3. Run the installer. It installs for your user only, so no root is needed:
+   ```bash
+   ./live-wpm/install.sh
+   ```
+   It copies Live WPM to `~/.local/bin/live-wpm` and adds an app-menu entry and an icon. If your account isn't in the `input` group yet, it explains why and offers to add it (that one step uses `sudo`).
+4. If it added you to the group, log out and back in.
+5. Open **Live WPM** from your app menu.
+
+You can also run it without installing anything: `./live-wpm/live-wpm`.
+
+### Allow keyboard access
+
+Linux doesn't let apps listen to the keyboard the way Windows does, and Wayland doesn't allow it at all. So Live WPM reads the keyboard device itself (`/dev/input/event*`). Reading those devices needs your account to be in the `input` group.
+
+1. Add yourself to the group (once):
+   ```bash
+   sudo usermod -aG input $USER
+   ```
+2. **Log out and back in.** Group changes only apply to a new login.
+3. Check it worked. `input` should be in the list:
+   ```bash
+   groups
+   ```
+
+In the app, **Settings → Keyboard access** shows the state:
+
+| It says | Meaning |
+|---|---|
+| **Reading 1 keyboard** (or more) | All set. |
+| **Needs permission** | You aren't in the `input` group yet, or haven't logged in again since. **Fix** copies the command above. |
+| **No keyboard found** | No keyboard is connected. Plug one in and Live WPM picks it up within a few seconds. |
+| **Off while paused** | Tracking is off, so Live WPM isn't reading the keyboard at all. |
+
+> [!NOTE]
+> **Privacy is the same as on Windows.** Every key event is sorted into its kind (a character, a space or Enter, a backspace) and forgotten at once. Which key you pressed is never stored, in memory or on disk, and nothing leaves your PC. Turn tracking off and Live WPM closes the keyboard devices within half a second. The code that does this is [`linux/EvdevKeyboard.cs`](linux/EvdevKeyboard.cs), if you'd like to check.
+
+### First start
+
+1. Live WPM asks for a name. It's only shown in the app, as your *Typer* name.
+2. The main window opens, and the Live WPM icon appears in your tray.
+3. Start typing anywhere. After a few words the speedometer fades in at the bottom-right corner. Drag it wherever you like and it remembers the spot.
+4. Close the main window when you're done. Live WPM keeps running in the tray.
+
+The **Guide** below ([Using Live WPM](#using-live-wpm)) describes every screen. It's the same on Linux.
+
+### The tray icon on your desktop
+
+Live WPM puts its icon in the system tray, using the standard Linux tray protocol (StatusNotifierItem). Clicking it opens your desktop's own menu with the same switches as on Windows: **Enabled**, **Floating window**, **Only when typing**, **Open Live WPM** and **Exit**.
+
+| Desktop | Tray |
+|---|---|
+| **KDE Plasma** | Built in. |
+| **Xfce, Cinnamon, MATE, Budgie** | Built in. |
+| **GNOME** | Needs the *AppIndicator and KStatusNotifierItem Support* extension (on Arch: `sudo pacman -S gnome-shell-extension-appindicator`, then turn it on in Extensions). |
+| **Hyprland, Sway and other tiling setups** | Add a tray to your bar, for example the `tray` module in Waybar. |
+
+With no tray at all, Live WPM still runs. Starting it again from the app menu opens its window, because only one copy ever runs.
+
+### Start on login
+
+**Settings → Start on login** (called *Start with Windows* on Windows) adds Live WPM to `~/.config/autostart`, which every desktop reads at login. It starts quietly in the tray. Turn the switch off to remove it again.
+
+### Updating on Linux
+
+- **The download (install.sh):** the same as Windows. Once a day Live WPM checks this repository's releases, shows a notification when a new version is out, and **Settings → Updates → Update** downloads it, swaps it in and restarts. Your stats stay as they are.
+- **The Arch package:** pacman owns the files, so the app doesn't replace them itself. Its **Updates** row says a new version is out and **Open** takes you to the release. To update, pull the new release and build again:
+  ```bash
+  cd Live-WPM && git pull && cd linux/packaging/arch && makepkg -si
+  ```
+
+### Moving your stats from Windows
+
+Both editions use the same stats format, so your records, history and graphs can come with you.
+
+1. On Windows, close Live WPM (tray icon → **Exit**).
+2. Copy `%APPDATA%\Live WPM\stats.dat`, and the `themes` folder beside it if you made your own themes.
+3. On Linux, exit Live WPM, then put them in `~/.config/Live WPM/`.
+4. Start Live WPM again.
+
+### Uninstalling on Linux
+
+- **The download:** run the installer with `--uninstall`. It removes the app, its menu entry, its icon and the login entry:
+  ```bash
+  ./live-wpm/install.sh --uninstall
+  ```
+  If you no longer have the download, delete `~/.local/bin/live-wpm`, `~/.local/share/applications/live-wpm.desktop` and `~/.config/autostart/live-wpm.desktop`.
+- **The Arch package:**
+  ```bash
+  sudo pacman -R live-wpm
+  ```
+
+Your stats stay in `~/.config/Live WPM` either way. Delete that folder to remove them too. You can also leave the `input` group: `sudo gpasswd -d $USER input`, then log in again.
+
+### Troubleshooting on Linux
+
+<details>
+<summary><b>The speedometer never appears when I type.</b></summary>
+<br>
+
+Check these in order:
+
+- **Settings → Keyboard access** says *Needs permission*: follow [Allow keyboard access](#allow-keyboard-access), and remember to log out and back in.
+- **Enabled** is off in the tray menu.
+- **Floating window** is off in the tray menu.
+- The run was very short. The speedometer shows once you've typed a few words.
+</details>
+
+<details>
+<summary><b>I joined the input group but it still says "Needs permission".</b></summary>
+<br>
+
+Group changes only reach programs started after a new login. Log out and back in (or restart), then open Live WPM again. `groups` in a new terminal should list `input`.
+</details>
+
+<details>
+<summary><b>The speedometer has square, black corners or isn't see-through.</b></summary>
+<br>
+
+Your desktop isn't compositing, so windows can't be see-through. KDE, GNOME and most modern desktops composite by default. On a plain window manager, run a compositor such as `picom`. Live WPM still works without one, with a solid background.
+</details>
+
+<details>
+<summary><b>The speedometer doesn't stay on top, or opens in the wrong place.</b></summary>
+<br>
+
+On Wayland the desktop decides where windows go. KDE honours Live WPM's position and "always on top"; GNOME may not. Drag it where you want it and the pin keeps it above other windows where the desktop allows. On a tiling window manager, add a rule that floats windows titled "Live WPM".
+</details>
+
+<details>
+<summary><b>It won't start, or I want to see what's wrong.</b></summary>
+<br>
+
+Run it from a terminal to see any error: `live-wpm` for the Arch package, or `~/.local/bin/live-wpm` for the download. Then [open an issue](https://github.com/tasin-py/Live-WPM/issues) with what it printed, your distro and your desktop.
+</details>
+
+### How it differs from Windows
+
+- **Keyboard:** Linux needs the one-time `input` group step; Windows needs nothing.
+- **Tray menu:** your desktop's own menu, instead of Live WPM's drawn pop-up.
+- **Safir Glass:** blurs what's behind the speedometer where the desktop offers blur (KDE Plasma). Elsewhere the glass is tinted more strongly so the numbers stay readable.
+- **Full-screen game detection:** Windows only. On Linux, runs full of held-down keys (game controls) are still thrown out.
+- **Size:** the Linux download is about 15 MB, because it carries .NET with it; the Windows exe uses the .NET that's built into Windows. The Arch package uses Arch's own .NET instead.
+- **Font:** Inter, built into the app, so it looks the same on every distro.
+
+### Building it yourself
+
+You need the .NET 10 SDK (`sudo pacman -S dotnet-sdk` on Arch). From the repository:
+
+```bash
+./linux/build.sh
+```
+
+This makes `versions/v1.7.0/live-wpm-linux-x64.tar.gz`, the same download as in the releases. To just run it while working on it:
+
+```bash
+dotnet run --project linux
+```
+
+See [Building from source](#building-from-source) for how the Linux edition shares code with Windows.
 
 ---
 
@@ -320,6 +571,8 @@ Live WPM never updates without asking.
 
 You can also click **Check** in Settings at any time.
 
+On Linux, see [Updating on Linux](#updating-on-linux).
+
 > [!IMPORTANT]
 > Automatic updates start from version 1.0.0. Earlier test builds have to be replaced by hand once.
 
@@ -334,6 +587,8 @@ All your stats and settings are in one file:
 ```
 
 Paste `%APPDATA%\Live WPM` into File Explorer's address bar to open the folder.
+
+On Linux it's `~/.config/Live WPM/stats.dat`, in the same format, with your own themes in `~/.config/Live WPM/themes`. See [Moving your stats from Windows](#moving-your-stats-from-windows).
 
 - **Back up or move to a new PC:** copy `stats.dat` into the same folder on the other PC while Live WPM is closed.
 - **Start fresh:** use **Settings → Reset all**, or delete the file while the app is closed.
@@ -350,6 +605,8 @@ Live WPM doesn't install anything, so removing it takes three steps:
 1. Open **Settings** and turn off **Start with Windows**. This removes its startup entry.
 2. Right-click the tray icon and choose **Exit**.
 3. Delete `Live WPM.exe`. To remove your stats too, delete the `%APPDATA%\Live WPM` folder.
+
+On Linux, see [Uninstalling on Linux](#uninstalling-on-linux).
 
 ---
 
@@ -371,6 +628,13 @@ The full source code is in this repository, so you can read it or [build the exe
 To measure typing in every app, Live WPM uses a standard Windows keyboard hook (`WH_KEYBOARD_LL`). Keyloggers use the same mechanism, so some antivirus tools flag new, unsigned apps that use it, even when the app does nothing harmful. This is a false positive.
 
 Live WPM keeps only key *types*, never which key was pressed, and sends nothing anywhere except the update check. You can confirm this in [`src/KeyboardHook.cs`](src/KeyboardHook.cs) and [`src/TypingEngine.cs`](src/TypingEngine.cs). If your antivirus quarantines it, restore it and add it as an exception, or build it from source.
+</details>
+
+<details>
+<summary><b>Does it work on Linux?</b></summary>
+<br>
+
+Yes. See [Linux](#linux) for installing it, the one-time keyboard step and [Troubleshooting on Linux](#troubleshooting-on-linux).
 </details>
 
 <details>
@@ -432,7 +696,7 @@ cd Live-WPM
 powershell -ExecutionPolicy Bypass -File build.ps1
 ```
 
-The result goes in its own folder per version, named from `AssemblyVersion` in `src\Program.cs`. For example, version 1.6.1 builds to `versions\v1.6.1\Live WPM.exe`. Earlier builds stay in their own folders, so building a new version never overwrites an old one.
+The result goes in its own folder per version, named from `AssemblyVersion` in `src\Program.cs`. For example, version 1.7.0 builds to `versions\v1.7.0\Live WPM.exe`. Earlier builds stay in their own folders, so building a new version never overwrites an old one.
 
 **What the build does**
 
@@ -444,6 +708,14 @@ The result goes in its own folder per version, named from `AssemblyVersion` in `
 
 **Code style.** The code is limited to C# 5, the version the built-in compiler supports. That means no string interpolation (`$"..."`), no `?.` and no `=>` members.
 
+**Linux.** The Linux edition is in `linux/`: C# on .NET 10 with [Avalonia](https://avaloniaui.net/) for the windows. It compiles the shared files from `src/` (typing engine, stats, themes and speed graph) unchanged, so both editions measure, store and look the same. With the .NET 10 SDK installed (`sudo pacman -S dotnet-sdk` on Arch):
+
+```bash
+./linux/build.sh
+```
+
+This makes `versions/v1.7.0/live-wpm-linux-x64.tar.gz`: one self-contained program (no .NET needed on the PC) plus `install.sh`. The version comes from `<Version>` in `linux/LiveWpm.Linux.csproj`. Keep it the same as the Windows one.
+
 **Command-line options**
 
 | Option | Purpose |
@@ -451,6 +723,7 @@ The result goes in its own folder per version, named from `AssemblyVersion` in `
 | `--tray` | Start hidden in the tray. Used by Start with Windows. |
 | `--make-icon <path>` | Write the app icon to a `.ico` file. Used by the build. |
 | `--updated` | Internal. Used when restarting after an update. |
+| `--version` | Linux only. Prints the version. |
 
 ---
 
@@ -460,25 +733,26 @@ Releases drive the in-app updater, so the steps must be followed exactly.
 
 1. Raise the version in `src/Program.cs`:
    ```csharp
-   [assembly: AssemblyVersion("1.6.1.0")]
-   [assembly: AssemblyFileVersion("1.6.1.0")]
+   [assembly: AssemblyVersion("1.7.0.0")]
+   [assembly: AssemblyFileVersion("1.7.0.0")]
    ```
-2. Build with `build.ps1`.
+   Use the same version in `linux/LiveWpm.Linux.csproj` (`<Version>1.7.0</Version>`) and `linux/packaging/arch/PKGBUILD` (`pkgver=1.7.0`): both editions share one version and one release.
+2. Build Windows with `build.ps1`, and Linux with `linux/build.sh` (on Linux, or in WSL).
 3. On GitHub, go to **Releases → Draft a new release**.
-4. Create a tag that matches the version: **`v1.6.1`**.
-5. Attach **only** `versions\v1.6.1\Live WPM.exe` (the folder for the new version), not the whole folder.
+4. Create a tag that matches the version: **`v1.7.0`**.
+5. Attach the two files from `versions\v1.7.0\`: **`Live WPM.exe`** and **`live-wpm-linux-x64.tar.gz`**. Not the whole folder.
 6. Write what changed, then click **Publish release**.
 
 Or do it all from a terminal with the GitHub CLI:
 
 ```powershell
-gh release create v1.6.1 "versions/v1.6.1/Live WPM.exe" --title "Live WPM 1.6.1" --notes "What changed"
+gh release create v1.7.0 "versions/v1.7.0/Live WPM.exe" "versions/v1.7.0/live-wpm-linux-x64.tar.gz" --title "Live WPM 1.7.0" --notes "What changed"
 ```
 
 Within a day, every running copy shows the update notification.
 
 > [!WARNING]
-> The tag must **match** the version inside the new exe (`v1.6.1` for `1.6.1.0`) and be **higher** than the previous release. A copy only updates when the tag is higher than its own version. A lower tag means nobody gets the update. A tag higher than the new exe's version means people who update are offered the same update again every day. If you fork this project, set `Repo` in [`src/Updater.cs`](src/Updater.cs) to your own `owner/repository`, or the updater will look at the wrong place.
+> The tag must **match** the version inside the new exe (`v1.7.0` for `1.7.0.0`) and be **higher** than the previous release. A copy only updates when the tag is higher than its own version. A lower tag means nobody gets the update. A tag higher than the new exe's version means people who update are offered the same update again every day. If you fork this project, set `Repo` in [`src/Updater.cs`](src/Updater.cs) to your own `owner/repository`, or the updater will look at the wrong place.
 
 ---
 
@@ -486,7 +760,7 @@ Within a day, every running copy shows the update notification.
 
 ```
 Live WPM/
-├── build.ps1                 Build script (no SDK needed)
+├── build.ps1                 Windows build script (no SDK needed)
 ├── versions/                 Built apps, one folder per version (v1.0.0, v1.1.0, ...)
 ├── README.md
 ├── docs/images/              Screenshots for this page
@@ -505,11 +779,24 @@ Live WPM/
     ├── Updater.cs            GitHub release check and self-update
     ├── Theme.cs              Themes, colours, fonts, text drawing, DPI-aware window base
     ├── ThemePicker.cs        The theme picker window
-    ├── ThemeFiles.cs         Loads, checks and saves the Typer's own theme files
+    ├── ThemeFiles.cs         Loads, checks and saves the Typer's own theme files (shared with Linux)
+    ├── Palettes.cs           The theme list and colour maths (shared with Linux)
     ├── GlassCanvas.cs        Glass drawing surface for the Safir Glass main window
     ├── app.ico / app.manifest
     ├── assets/               Images built into the exe
     └── fonts/                Optional app font (not in the repository)
+
+linux/                        Live WPM for Linux (.NET 10 + Avalonia)
+├── LiveWpm.Linux.csproj      Also compiles TypingEngine, DataStore, ThemeFiles, Palettes and SpeedGraph from src/
+├── build.sh / install.sh     Builds the release download / installs it for one user
+├── EvdevKeyboard.cs          Reads the keyboard devices: only the kind of key, never which key
+├── Gfx.cs                    The drawing calls the Windows paint code uses, drawn with Avalonia
+├── Theme.cs                  Colours in use, Inter font, drawing helpers
+├── Program.cs                Startup, tray icon, one copy at a time
+├── Platform.cs               Links, notifications, Start on login
+├── Updater.cs                GitHub release check and self-update
+├── *Window.cs, NamePrompt.cs, ThemePicker.cs   The same windows as on Windows
+└── packaging/                Arch PKGBUILD and the menu entry
 ```
 
 ---
