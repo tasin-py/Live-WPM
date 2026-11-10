@@ -429,9 +429,19 @@ namespace LiveWpm
         {
             PointF[] p = { new PointF(x, y) };
             float scale;
-            using (Matrix m = g.Transform) { scale = m.Elements[0]; m.TransformPoints(p); }
+            Region clip = null;
+            using (Matrix m = g.Transform)
+            {
+                scale = m.Elements[0];
+                m.TransformPoints(p);
+                // The clip is kept in drawing units. Taken into device pixels here, it still covers the whole
+                // window once the scaling is switched off below: without this, at 150% text was cut off at
+                // two thirds of the window (everything past 720 x 600 pixels lost its text).
+                if (!m.IsIdentity && !g.IsClipEmpty) { clip = g.Clip; clip.Transform(m); }
+            }
             GraphicsState st = g.Save();
             g.ResetTransform();
+            if (clip != null) { g.Clip = clip; clip.Dispose(); }
             bool gold = Current.Shiny && (c.ToArgb() == Accent.ToArgb() || c.ToArgb() == Orange.ToArgb());
             if (glassBits != IntPtr.Zero)
             {
@@ -455,9 +465,45 @@ namespace LiveWpm
                 g.Restore(st);
                 return;
             }
-            TextRenderer.DrawText(g, s, DeviceFont(f, scale),
-                new Point((int)Math.Round(p[0].X), (int)Math.Round(p[0].Y)), Solid(c), Tf);
+            DrawGdiText(g, s, DeviceFont(f, scale), new Point((int)Math.Round(p[0].X), (int)Math.Round(p[0].Y)), Solid(c));
             g.Restore(st);
+        }
+
+        // ClearType text through GDI, clipped to the current clip in device pixels. TextRenderer's own
+        // "preserve clipping" rebuilds the clip from every saved Graphics state and ignores their scaling,
+        // so on a 125% or 150% display it cut text off at the 100% size of the window (issue from a
+        // Windows 10 Typer: labels, values and buttons on the right and lower parts had no text).
+        // Here the clip is set on the device context directly, in device pixels.
+        [DllImport("gdi32.dll")] static extern int SaveDC(IntPtr hdc);
+        [DllImport("gdi32.dll")] static extern bool RestoreDC(IntPtr hdc, int saved);
+        [DllImport("gdi32.dll")] static extern int IntersectClipRect(IntPtr hdc, int left, int top, int right, int bottom);
+
+        sealed class Hdc : IDeviceContext
+        {
+            readonly IntPtr h;
+            public Hdc(IntPtr h) { this.h = h; }
+            public IntPtr GetHdc() { return h; }
+            public void ReleaseHdc() { }
+            public void Dispose() { }
+        }
+
+        const TextFormatFlags GdiTf = TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix | TextFormatFlags.SingleLine;
+
+        static void DrawGdiText(Graphics g, string s, Font df, Point at, Color c)
+        {
+            if (string.IsNullOrEmpty(s) || g.IsClipEmpty) return;
+            RectangleF clip = g.ClipBounds;   // the transform is already reset: these are device pixels
+            int l = (int)Math.Max(-100000, Math.Floor(clip.Left)), t = (int)Math.Max(-100000, Math.Floor(clip.Top));
+            int r = (int)Math.Min(100000, Math.Ceiling(clip.Right)), b = (int)Math.Min(100000, Math.Ceiling(clip.Bottom));
+            IntPtr hdc = g.GetHdc();
+            try
+            {
+                int saved = SaveDC(hdc);
+                IntersectClipRect(hdc, l, t, r, b);
+                TextRenderer.DrawText(new Hdc(hdc), s, df, at, c, GdiTf);
+                RestoreDC(hdc, saved);
+            }
+            finally { g.ReleaseHdc(hdc); }
         }
 
         // Polished metal: a bright highlight at the top, the theme's gold in the middle, a deeper shade below.

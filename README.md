@@ -72,7 +72,7 @@
 **1.7** (current: 1.7.0)
 
 - **Live WPM for Linux**: the same app, themes, stats and speedometer, now on Linux. Tested first on Arch Linux, and works under both X11 and Wayland. See [Linux](#linux).
-- **Windows**: no visible changes. The theme list moved into a file both editions share.
+- **Fixed on Windows: missing text on scaled displays.** At 125%, 150% or 200% display scaling, button labels, values, the lower stat cards and the About group could lose their text. Everything now shows at any scale.
 
 **1.6**
 
