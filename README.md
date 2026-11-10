@@ -72,6 +72,7 @@
 **1.7** (current: 1.7.0)
 
 - **Live WPM for Linux**: the same app, themes, stats and speedometer, now on Linux. Tested first on Arch Linux, and works under both X11 and Wayland. See [Linux](#linux).
+- **A locked-down keyboard service on Linux**: a small service reads the keyboard for Live WPM and passes on only the kind of each key, never which key. systemd runs it with a temporary user of its own, no network and no access to your files. Your own account needs no extra rights, and you don't join the `input` group. See [The keyboard service](#the-keyboard-service).
 - **Fixed on Windows: missing text on scaled displays.** At 125%, 150% or 200% display scaling, button labels, values, the lower stat cards and the About group could lose their text. Everything now shows at any scale.
 
 **1.6**
@@ -132,6 +133,8 @@ Live WPM is built so that it **cannot** tell anyone what you typed, including yo
 **Network:** the app connects to the internet for one thing only: a once-a-day check of this project's GitHub Releases for a new version, plus the download when you choose to update. No statistics, analytics or telemetry are ever sent.
 
 **Off means off:** when tracking is switched off, the app stops reacting to the keyboard entirely.
+
+**On Linux:** the same rules hold. A small, locked-down [keyboard service](#the-keyboard-service) hands Live WPM only the kind of each key, and it has no network access at all. When tracking is off, Live WPM disconnects and the service closes the keyboards.
 
 > [!NOTE]
 > Everything is stored in a single plain-text file on your own PC (see [Your data](#your-data)). You can open it in Notepad and check that it contains only numbers.
