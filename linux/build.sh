@@ -16,7 +16,7 @@ dotnet publish LiveWpm.Linux.csproj -c Release -r "linux-$ARCH" --self-contained
     -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none \
     -p:PublishTrimmed=true \
     -nologo -o "$WORK/live-wpm"
-cp install.sh assets/live-wpm.png "$WORK/live-wpm/"
+cp install.sh assets/live-wpm.png packaging/live-wpm-keys.socket packaging/live-wpm-keys.service "$WORK/live-wpm/"
 chmod +x "$WORK/live-wpm/live-wpm" "$WORK/live-wpm/install.sh"
 
 mkdir -p "$OUT"

@@ -19,6 +19,8 @@ namespace LiveWpm
         [STAThread]
         static int Main(string[] args)
         {
+            // The sandboxed keyboard service (run by systemd): no windows, nothing else of the app.
+            if (args.Length > 0 && args[0] == "--keyboard-service") return KeyboardService.Run(args);
             Args = args;
             if (Array.IndexOf(args, "--version") >= 0) { Console.WriteLine(Theme.AppName + " " + Updater.Current); return 0; }
             if (Array.IndexOf(args, "--updated") >= 0) Platform.WaitForOldCopy();
@@ -79,7 +81,7 @@ namespace LiveWpm
         readonly Application app;
         readonly IClassicDesktopStyleApplicationLifetime desktop;
         DataStore store;
-        readonly EvdevKeyboard keyboard = new EvdevKeyboard();
+        readonly KeyboardInput keyboard = new KeyboardInput();
         TypingEngine engine;
         readonly DispatcherTimer tick = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
         TrayIcon icon;

@@ -7,10 +7,12 @@ using System.Threading;
 
 namespace LiveWpm
 {
-    enum KeyboardAccess { Off, Ok, NoPermission, NoKeyboard }
+    // NotAllowed: the keyboard service refused, because another user is at the screen (or this is a remote login).
+    enum KeyboardAccess { Off, Ok, NoPermission, NoKeyboard, NotAllowed }
 
     // Reads the keyboard on Linux, under X11 and Wayland alike, from the kernel's input devices
-    // (/dev/input/event*). Needs the Typer to be in the "input" group, once.
+    // (/dev/input/event*). Opening them needs the "input" group, so normally only the sandboxed
+    // keyboard service (KeyboardService.cs) runs this; the app uses it directly only as a fallback.
     //
     // PRIVACY: the same rule as the Windows hook. Each event is turned straight into the *kind* of
     // key (a character, a word break or a backspace) and the key itself is forgotten. No key codes,

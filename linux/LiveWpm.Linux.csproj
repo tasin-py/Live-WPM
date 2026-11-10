@@ -20,6 +20,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="../src/KeyKind.cs" Link="Shared/KeyKind.cs" />
     <Compile Include="../src/TypingEngine.cs" Link="Shared/TypingEngine.cs" />
     <Compile Include="../src/DataStore.cs" Link="Shared/DataStore.cs" />
     <Compile Include="../src/ThemeFiles.cs" Link="Shared/ThemeFiles.cs" />

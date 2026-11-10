@@ -1,10 +1,15 @@
 _note() {
-    if ! id -nG "${SUDO_USER:-$USER}" 2>/dev/null | tr ' ' '\n' | grep -qx input; then
-        echo ">>> Live WPM reads your keyboard device to measure your speed (only the kind of key,"
-        echo ">>> never which key). Allow it once, then log out and back in:"
-        echo ">>>     sudo usermod -aG input \$USER"
+    if ! systemctl is-enabled -q live-wpm-keys.socket 2>/dev/null; then
+        echo ">>> Live WPM's keyboard service reads the keyboard for it, locked down by systemd"
+        echo ">>> (no network, no access to your files; your own account needs no extra rights)."
+        echo ">>> Switch it on once:"
+        echo ">>>     sudo systemctl enable --now live-wpm-keys.socket"
     fi
 }
 
 post_install() { _note; }
 post_upgrade() { _note; }
+
+pre_remove() {
+    systemctl disable --now live-wpm-keys.socket live-wpm-keys.service >/dev/null 2>&1 || true
+}

@@ -2,3 +2,5 @@
 PKGBUILD text eol=lf
 *.install text eol=lf
 *.desktop text eol=lf
+*.socket text eol=lf
+*.service text eol=lf

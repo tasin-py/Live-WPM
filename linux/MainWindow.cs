@@ -19,7 +19,7 @@ namespace LiveWpm
         const float ListTop = 136, RowH = 46, ListBottom = H - 18;
 
         readonly DataStore store;
-        readonly EvdevKeyboard keyboard;
+        readonly KeyboardInput keyboard;
         readonly Action startupChanged, dataChanged, appearanceChanged;
         readonly List<KeyValuePair<RectangleF, string>> hits = new List<KeyValuePair<RectangleF, string>>();
         int page;          // 0 home, 1 history, 2 settings
@@ -27,7 +27,7 @@ namespace LiveWpm
         float scroll;
         bool busy;         // a dialog is open
 
-        public MainWindow(DataStore store, EvdevKeyboard keyboard, Action startupChanged, Action dataChanged, Action appearanceChanged)
+        public MainWindow(DataStore store, KeyboardInput keyboard, Action startupChanged, Action dataChanged, Action appearanceChanged)
         {
             this.store = store;
             this.keyboard = keyboard;
@@ -194,23 +194,36 @@ namespace LiveWpm
 
         async System.Threading.Tasks.Task ExplainKeyboard()
         {
-            const string cmd = "sudo usermod -aG input $USER";
+            const string about =
+                "Live WPM's keyboard service reads your keyboard for it. The service runs locked down by systemd: " +
+                "no network, no access to your files, and it sends Live WPM only the kind of each key " +
+                "(a letter, a space or a backspace), never which key. Your own account needs no extra rights.";
             if (keyboard.Access == KeyboardAccess.NoPermission)
             {
-                CopyText(cmd);
-                await MessageWindow.Info(this,
-                    "Live WPM measures your speed by reading your keyboard device. It keeps only the kind of key " +
-                    "(a letter, a space or a backspace), never which key, and nothing leaves your PC.\n\n" +
-                    "Your account isn't allowed to read keyboards yet. Run this once in a terminal, then log out and back in:\n\n" +
-                    cmd + "\n\nThe command is already copied for you.");
+                if (KeyboardInput.ServiceInstalled)
+                {
+                    const string cmd = "sudo systemctl enable --now live-wpm-keys.socket";
+                    CopyText(cmd);
+                    await MessageWindow.Info(this, about + "\n\nIt's installed but switched off. Run this once in a terminal:\n\n" +
+                        cmd + "\n\nThe command is already copied for you. Live WPM connects by itself a few seconds later.");
+                }
+                else
+                    await MessageWindow.Info(this, about + "\n\nIt isn't installed yet. Run install.sh from the Live WPM download again " +
+                        "and answer yes to the keyboard service, or install the Arch package. Both are explained under Linux in the README.");
             }
+            else if (keyboard.Access == KeyboardAccess.NotAllowed)
+                await MessageWindow.Info(this, "The keyboard service only answers the person logged in at this screen. " +
+                    "It doesn't for remote logins, or while another user has switched in.");
             else if (keyboard.Access == KeyboardAccess.NoKeyboard)
                 await MessageWindow.Info(this, "No keyboard was found. Plug one in and Live WPM picks it up within a few seconds.");
-            else
+            else if (keyboard.Mode == KeyboardMode.Direct)
                 await MessageWindow.Info(this,
-                    "Live WPM reads your keyboard device to measure your speed. It keeps only the kind of key " +
-                    "(a letter, a space or a backspace), never which key, and nothing leaves your PC. " +
-                    "Turn tracking off from the tray menu and it stops reading the keyboard completely.");
+                    "Live WPM is reading your keyboard itself, because your account is in the \"input\" group. " +
+                    "That works, but it also lets every other program you run read your keys. " +
+                    "The keyboard service is the safer way: install it, and you can leave the input group with\n\n" +
+                    "sudo gpasswd -d $USER input");
+            else
+                await MessageWindow.Info(this, about + " Turn tracking off from the tray menu and it stops reading the keyboard completely.");
         }
 
         // ---- painting ------------------------------------------------------------
@@ -288,7 +301,8 @@ namespace LiveWpm
 
             string status; Color sc;
             if (!store.Tracking) { status = "Paused"; sc = LiveWpm.Theme.Off; }
-            else if (keyboard.Access == KeyboardAccess.NoPermission) { status = "No keyboard access: see Settings"; sc = LiveWpm.Theme.DangerText; }
+            else if (keyboard.Access == KeyboardAccess.NoPermission) { status = "Keyboard service needed: see Settings"; sc = LiveWpm.Theme.DangerText; }
+            else if (keyboard.Access == KeyboardAccess.NotAllowed) { status = "Not this session"; sc = LiveWpm.Theme.Muted; }
             else if (keyboard.Access == KeyboardAccess.NoKeyboard) { status = "No keyboard found"; sc = LiveWpm.Theme.Muted; }
             else { status = "Tracking on"; sc = LiveWpm.Theme.Accent; }
             float tw = LiveWpm.Theme.Measure(g, status, LiveWpm.Theme.F(11.5f, true));
@@ -388,8 +402,12 @@ namespace LiveWpm
             string kv; string kb;
             switch (keyboard.Access)
             {
-                case KeyboardAccess.Ok: kv = keyboard.Count == 1 ? "Reading 1 keyboard" : "Reading " + keyboard.Count + " keyboards"; kb = "About"; break;
-                case KeyboardAccess.NoPermission: kv = "Needs permission"; kb = "Fix"; break;
+                case KeyboardAccess.Ok:
+                    kv = (keyboard.Count == 1 ? "1 keyboard" : keyboard.Count + " keyboards") +
+                         (keyboard.Mode == KeyboardMode.Direct ? ", through the input group" : ", through the keyboard service");
+                    kb = "About"; break;
+                case KeyboardAccess.NoPermission: kv = KeyboardInput.ServiceInstalled ? "Keyboard service is off" : "Keyboard service not installed"; kb = "Set up"; break;
+                case KeyboardAccess.NotAllowed: kv = "Not available in this session"; kb = "Help"; break;
                 case KeyboardAccess.NoKeyboard: kv = "No keyboard found"; kb = "Help"; break;
                 default: kv = "Off while paused"; kb = "About"; break;
             }

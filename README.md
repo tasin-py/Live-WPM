@@ -46,7 +46,7 @@
 - [Linux](#linux)
   - [Install on Arch Linux](#install-on-arch-linux)
   - [Install on any distro](#install-on-any-distro)
-  - [Allow keyboard access](#allow-keyboard-access)
+  - [The keyboard service](#the-keyboard-service)
   - [Troubleshooting on Linux](#troubleshooting-on-linux)
 - [Using Live WPM](#using-live-wpm)
   - [The tray icon](#the-tray-icon)
@@ -149,7 +149,7 @@ Live WPM is built so that it **cannot** tell anyone what you typed, including yo
 
 - A 64-bit Linux desktop (x86-64). Tested first on **Arch Linux**, and it works on X11 and Wayland sessions alike.
 - Nothing else to install for the download: it carries everything it needs. The Arch package uses Arch's own `dotnet-runtime`.
-- Your account in the `input` group, once, so Live WPM can read the keyboard (see [Allow keyboard access](#allow-keyboard-access)).
+- systemd, for Live WPM's keyboard service (see [The keyboard service](#the-keyboard-service)). Arch, Fedora, Ubuntu, Debian, openSUSE and most other distros use it.
 
 ---
 
@@ -185,7 +185,7 @@ Live WPM for Linux is the same app as on Windows: the tray icon, the floating sp
 - [What you need](#what-you-need)
 - [Install on Arch Linux](#install-on-arch-linux)
 - [Install on any distro](#install-on-any-distro)
-- [Allow keyboard access](#allow-keyboard-access)
+- [The keyboard service](#the-keyboard-service)
 - [First start](#first-start)
 - [The tray icon on your desktop](#the-tray-icon-on-your-desktop)
 - [Start on login](#start-on-login)
@@ -199,7 +199,7 @@ Live WPM for Linux is the same app as on Windows: the tray icon, the floating sp
 
 - A 64-bit (x86-64) Linux PC with a desktop: KDE Plasma, GNOME, Xfce, Cinnamon, MATE, Hyprland, Sway or similar.
 - An X11 or a Wayland session. Both work.
-- Your account in the `input` group (a one-time step, explained [below](#allow-keyboard-access)).
+- systemd, which runs Live WPM's [keyboard service](#the-keyboard-service). Switching that on needs `sudo` once. Your own account needs no extra rights.
 - **For the download:** nothing else. It carries everything it needs, .NET included.
 - **For the Arch package:** `git` and `base-devel` to build it. The package then uses Arch's own .NET runtime, which pacman installs for you.
 
@@ -219,7 +219,10 @@ The Arch way: build a real package with `makepkg` and let pacman install it. It 
    ```bash
    cd Live-WPM/linux/packaging/arch && makepkg -si
    ```
-4. Allow keyboard access, if pacman's message asks you to (see [Allow keyboard access](#allow-keyboard-access)).
+4. Switch on the keyboard service (once):
+   ```bash
+   sudo systemctl enable --now live-wpm-keys.socket
+   ```
 5. Open **Live WPM** from your app menu, or run `live-wpm`.
 
 > [!TIP]
@@ -237,41 +240,61 @@ The download is one self-contained program plus a small installer. It works on A
    ```bash
    tar -xzf live-wpm-linux-x64.tar.gz
    ```
-3. Run the installer. It installs for your user only, so no root is needed:
+3. Run the installer:
    ```bash
    ./live-wpm/install.sh
    ```
-   It copies Live WPM to `~/.local/bin/live-wpm` and adds an app-menu entry and an icon. If your account isn't in the `input` group yet, it explains why and offers to add it (that one step uses `sudo`).
-4. If it added you to the group, log out and back in.
-5. Open **Live WPM** from your app menu.
+   It installs the app for your user only, in `~/.local/bin/live-wpm`, with an app-menu entry and an icon. Then it explains the [keyboard service](#the-keyboard-service) and asks to install it. That step uses `sudo` once.
+4. Open **Live WPM** from your app menu.
 
 You can also run it without installing anything: `./live-wpm/live-wpm`.
 
-### Allow keyboard access
+### The keyboard service
 
-Linux doesn't let apps listen to the keyboard the way Windows does, and Wayland doesn't allow it at all. So Live WPM reads the keyboard device itself (`/dev/input/event*`). Reading those devices needs your account to be in the `input` group.
+**Why it's needed.** Linux only lets programs in the `input` group read the keyboard, and Wayland doesn't let apps watch each other's typing at all. Putting your own account in the `input` group would work, but then *every* program you run could read every key you press, passwords included. Live WPM doesn't ask you to do that.
 
-1. Add yourself to the group (once):
-   ```bash
-   sudo usermod -aG input $USER
-   ```
-2. **Log out and back in.** Group changes only apply to a new login.
-3. Check it worked. `input` should be in the list:
-   ```bash
-   groups
-   ```
+**What it does instead.** A small service reads the keyboard for Live WPM and passes on only the kind of each key: a character, a space or Enter, a backspace, or a long hold. It never passes on which key. Live WPM, running as you, gets nothing more than that, and your own account needs no extra rights.
+
+**How it's locked down.** systemd runs the service ([`live-wpm-keys.service`](linux/packaging/live-wpm-keys.service)) like this:
+
+- **A temporary user of its own,** created when it starts and gone when it stops. No account is added to your system.
+- **No network at all.** It can't send anything anywhere.
+- **Your files are out of reach.** Home folders are hidden from it, and the rest of the system is read-only.
+- **Only input devices.** It has no privileges, and nothing it could use to get any.
+- **Only for you, at your screen.** It answers only the user logged in at the screen right now. It won't answer a remote (SSH) login, or you once another user has switched in.
+- **Only while Live WPM listens.** It starts when Live WPM connects, closes the keyboards the moment Live WPM disconnects (for example when you turn tracking off), and exits after 30 quiet seconds.
+
+`systemd-analyze security live-wpm-keys.service` rates it **0.8 SAFE**. Its code is one short file, [`linux/KeyboardService.cs`](linux/KeyboardService.cs), and the key reading is [`linux/EvdevKeyboard.cs`](linux/EvdevKeyboard.cs), so you can read exactly what it does.
+
+**Switching it on.** `install.sh` does this for you. For the Arch package, run once:
+
+```bash
+sudo systemctl enable --now live-wpm-keys.socket
+```
+
+To check it's on:
+
+```bash
+systemctl status live-wpm-keys.socket
+```
 
 In the app, **Settings → Keyboard access** shows the state:
 
 | It says | Meaning |
 |---|---|
-| **Reading 1 keyboard** (or more) | All set. |
-| **Needs permission** | You aren't in the `input` group yet, or haven't logged in again since. **Fix** copies the command above. |
+| **1 keyboard, through the keyboard service** | All set. |
+| **Keyboard service is off** | It's installed but not switched on. **Set up** copies the command above. |
+| **Keyboard service not installed** | Run `install.sh` again and answer yes, or install the Arch package. |
+| **Not available in this session** | Someone else is logged in at the screen, or this is a remote login. |
 | **No keyboard found** | No keyboard is connected. Plug one in and Live WPM picks it up within a few seconds. |
-| **Off while paused** | Tracking is off, so Live WPM isn't reading the keyboard at all. |
+| **Off while paused** | Tracking is off, so nothing is reading the keyboard. |
 
 > [!NOTE]
-> **Privacy is the same as on Windows.** Every key event is sorted into its kind (a character, a space or Enter, a backspace) and forgotten at once. Which key you pressed is never stored, in memory or on disk, and nothing leaves your PC. Turn tracking off and Live WPM closes the keyboard devices within half a second. The code that does this is [`linux/EvdevKeyboard.cs`](linux/EvdevKeyboard.cs), if you'd like to check.
+> **Privacy is the same as on Windows.** Every key event is sorted into its kind and forgotten at once. Which key you pressed is never stored, in memory or on disk, and nothing leaves your PC.
+
+#### Without systemd
+
+On a distro without systemd (Artix, Void, Gentoo with OpenRC and others) the service can't run. Live WPM can still read the keyboard itself if you add your account to the `input` group (`sudo usermod -aG input $USER`, then log out and back in). **Know what that means first:** it lets every program you run read your keyboard, not just Live WPM. If you later get the service, leave the group again with `sudo gpasswd -d $USER input`. Live WPM always prefers the service when it's there.
 
 ### First start
 
@@ -318,7 +341,7 @@ Both editions use the same stats format, so your records, history and graphs can
 
 ### Uninstalling on Linux
 
-- **The download:** run the installer with `--uninstall`. It removes the app, its menu entry, its icon and the login entry:
+- **The download:** run the installer with `--uninstall`. It removes the app, its menu entry, its icon, the login entry and the keyboard service (that part asks for `sudo`):
   ```bash
   ./live-wpm/install.sh --uninstall
   ```
@@ -328,7 +351,7 @@ Both editions use the same stats format, so your records, history and graphs can
   sudo pacman -R live-wpm
   ```
 
-Your stats stay in `~/.config/Live WPM` either way. Delete that folder to remove them too. You can also leave the `input` group: `sudo gpasswd -d $USER input`, then log in again.
+Both remove the keyboard service too. Your stats stay in `~/.config/Live WPM` either way. Delete that folder to remove them too.
 
 ### Troubleshooting on Linux
 
@@ -338,17 +361,17 @@ Your stats stay in `~/.config/Live WPM` either way. Delete that folder to remove
 
 Check these in order:
 
-- **Settings → Keyboard access** says *Needs permission*: follow [Allow keyboard access](#allow-keyboard-access), and remember to log out and back in.
+- **Settings → Keyboard access** doesn't say *through the keyboard service*: see [The keyboard service](#the-keyboard-service).
 - **Enabled** is off in the tray menu.
 - **Floating window** is off in the tray menu.
 - The run was very short. The speedometer shows once you've typed a few words.
 </details>
 
 <details>
-<summary><b>I joined the input group but it still says "Needs permission".</b></summary>
+<summary><b>It says the keyboard service is off, but I switched it on.</b></summary>
 <br>
 
-Group changes only reach programs started after a new login. Log out and back in (or restart), then open Live WPM again. `groups` in a new terminal should list `input`.
+Check it with `systemctl status live-wpm-keys.socket`. It should say *active (listening)*. Live WPM looks for the service every few seconds, so there's no need to restart it. If the socket is active but Live WPM still can't connect, run `journalctl -u live-wpm-keys` and [open an issue](https://github.com/tasin-py/Live-WPM/issues) with what it shows.
 </details>
 
 <details>
@@ -374,7 +397,7 @@ Run it from a terminal to see any error: `live-wpm` for the Arch package, or `~/
 
 ### How it differs from Windows
 
-- **Keyboard:** Linux needs the one-time `input` group step; Windows needs nothing.
+- **Keyboard:** on Linux a small, locked-down [keyboard service](#the-keyboard-service) reads the keyboard, switched on once with `sudo`. Windows needs nothing.
 - **Tray menu:** your desktop's own menu, instead of Live WPM's drawn pop-up.
 - **Safir Glass:** blurs what's behind the speedometer where the desktop offers blur (KDE Plasma). Elsewhere the glass is tinted more strongly so the numbers stay readable.
 - **Full-screen game detection:** Windows only. On Linux, runs full of held-down keys (game controls) are still thrown out.
@@ -790,13 +813,15 @@ linux/                        Live WPM for Linux (.NET 10 + Avalonia)
 ├── LiveWpm.Linux.csproj      Also compiles TypingEngine, DataStore, ThemeFiles, Palettes and SpeedGraph from src/
 ├── build.sh / install.sh     Builds the release download / installs it for one user
 ├── EvdevKeyboard.cs          Reads the keyboard devices: only the kind of key, never which key
+├── KeyboardService.cs        The keyboard service (live-wpm --keyboard-service), run locked down by systemd
+├── KeyboardInput.cs          The app's side: takes key kinds from the service
 ├── Gfx.cs                    The drawing calls the Windows paint code uses, drawn with Avalonia
 ├── Theme.cs                  Colours in use, Inter font, drawing helpers
 ├── Program.cs                Startup, tray icon, one copy at a time
 ├── Platform.cs               Links, notifications, Start on login
 ├── Updater.cs                GitHub release check and self-update
 ├── *Window.cs, NamePrompt.cs, ThemePicker.cs   The same windows as on Windows
-└── packaging/                Arch PKGBUILD and the menu entry
+└── packaging/                Arch PKGBUILD, the menu entry and the keyboard service's systemd units
 ```
 
 ---
