@@ -60,7 +60,7 @@ namespace LiveWpm
 
             Theme.DrawText(g, "Buy Me A Coffee", Theme.F(17, true), Theme.Text, 30, 24);
             Theme.DrawText(g, "Scan to support Live WPM on SupportKori", Theme.F(11, false), Theme.Muted, 31, 52);
-            DrawClose(g);
+            Theme.DrawCloseX(g, CloseRect, hoverClose, Theme.Muted);
 
             Theme.FillRound(g, Color.White, QrCard, 14);
             if (Theme.Light) Theme.StrokeRound(g, Theme.Border, QrCard, 14, 1); // keeps the white card visible on light themes
@@ -100,18 +100,6 @@ namespace LiveWpm
                         if (qr.GetPixel(c, r).GetBrightness() < 0.5f)
                             g.FillRectangle(b, left + c * cell, top + r * cell, cell, cell);
             g.Restore(state);
-        }
-
-        void DrawClose(Graphics g)
-        {
-            if (hoverClose) Theme.FillRound(g, Theme.Danger, CloseRect, 7);
-            float cx = CloseRect.X + CloseRect.Width / 2, cy = CloseRect.Y + CloseRect.Height / 2;
-            using (Pen p = new Pen(hoverClose ? Color.White : Theme.Muted, 1.6f))
-            {
-                p.StartCap = p.EndCap = LineCap.Round;
-                g.DrawLine(p, cx - 4.5f, cy - 4.5f, cx + 4.5f, cy + 4.5f);
-                g.DrawLine(p, cx + 4.5f, cy - 4.5f, cx - 4.5f, cy + 4.5f);
-            }
         }
 
         int ButtonAt(float x, float y)

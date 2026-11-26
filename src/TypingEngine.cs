@@ -198,10 +198,11 @@ namespace LiveWpm
             if (!s.Confirmed || s.Rejected || s.LooksLikeGaming)
             {
                 // Not typing (a game, shortcuts, a stray key): forget it completely.
-                bool wasShown = s.Confirmed && !s.Rejected;
+                // Once the dial has shown a session, let it settle even if the session was rejected later.
+                bool wasConfirmed = s.Confirmed;
                 Phase = Phase.Idle;
                 Session = null;
-                if (wasShown && HoldDone != null) HoldDone();
+                if (wasConfirmed && HoldDone != null) HoldDone();
                 return;
             }
 

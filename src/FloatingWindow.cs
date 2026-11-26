@@ -35,7 +35,7 @@ namespace LiveWpm
         long previewUntil;                 // Settings changed: stay up briefly so the Typer sees the result
         int blurState = -1;
 
-        public event Action PinChanged, CloseClicked;
+        public event Action CloseClicked;
 
         public FloatingWindow(DataStore store, TypingEngine engine)
         {
@@ -260,7 +260,7 @@ namespace LiveWpm
             Theme.DrawText(g, "wpm now", Theme.F(10, Theme.Light), Faint, 14 + Theme.Measure(g, cur, big) + 5, 20);
 
             DrawPin(g);
-            DrawClose(g);
+            Theme.DrawCloseX(g, CloseRect, hoverClose, Faint);
             DrawDial(g);
 
             // centre: session average
@@ -454,18 +454,6 @@ namespace LiveWpm
                 g.FillEllipse(tip, CX + cos * R - 3.5f, CY + sin * R - 3.5f, 7, 7);
         }
 
-        void DrawClose(Graphics g)
-        {
-            if (hoverClose) Theme.FillRound(g, Theme.Danger, CloseRect, 7);
-            float cx = CloseRect.X + CloseRect.Width / 2, cy = CloseRect.Y + CloseRect.Height / 2;
-            using (Pen p = new Pen(hoverClose ? Color.White : Faint, 1.6f))
-            {
-                p.StartCap = p.EndCap = LineCap.Round;
-                g.DrawLine(p, cx - 4.5f, cy - 4.5f, cx + 4.5f, cy + 4.5f);
-                g.DrawLine(p, cx + 4.5f, cy - 4.5f, cx - 4.5f, cy + 4.5f);
-            }
-        }
-
         void DrawPin(Graphics g)
         {
             bool on = store.Pinned;
@@ -520,7 +508,6 @@ namespace LiveWpm
                 store.Pinned = !store.Pinned;
                 ApplyPin();
                 store.Save();
-                if (PinChanged != null) PinChanged();
             }
             else if (OverClose(e.Location)) { if (CloseClicked != null) CloseClicked(); }
             else Theme.BeginDrag(Handle);

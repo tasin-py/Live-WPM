@@ -185,10 +185,16 @@ namespace LiveWpm
                 // Discord has no profile links by username, so copy it for pasting into "Add Friend".
                 try { Clipboard.SetText("tasin_py"); } catch { }
                 discordCopied = true;
-                Timer t = new Timer();
-                t.Interval = 1600;
-                t.Tick += delegate { t.Dispose(); discordCopied = false; Invalidate(); };
-                t.Start();
+                if (discordTimer != null) { discordTimer.Stop(); discordTimer.Dispose(); }
+                discordTimer = new Timer();
+                discordTimer.Interval = 1600;
+                discordTimer.Tick += delegate
+                {
+                    if (discordTimer != null) { discordTimer.Stop(); discordTimer.Dispose(); discordTimer = null; }
+                    discordCopied = false;
+                    if (!IsDisposed) Invalidate();
+                };
+                discordTimer.Start();
             }
             else if (id == "set:startup")
             {
@@ -312,7 +318,7 @@ namespace LiveWpm
             Theme.DrawText(g, "LIFETIME", Theme.F(10.5f, true), Theme.Muted, 30, 434);
 
             bool hasPeak = store.PeakWpm > 0;
-            string when = hasPeak ? store.PeakTime.ToString("MMM d, yyyy · h:mm tt") : "type a bit to set it";
+            string when = hasPeak ? store.PeakTime.ToString("MMM d, yyyy · h:mm tt", CultureInfo.InvariantCulture) : "type a bit to set it";
             Card(g, 28, 316, cw, "PEAK SPEED", hasPeak ? Theme.Fmt(store.PeakWpm) : "—", "wpm", when, Theme.Accent);
             Card(g, 28 + cw + 16, 316, cw, "ACCURACY", hasPeak ? Theme.Fmt(store.PeakAcc) : "—", "%", "on your peak run", Theme.Text);
             Card(g, 28 + 2 * (cw + 16), 316, cw, "WORDS AT ONCE", hasPeak ? Theme.Num(store.PeakWords) : "—", "words", "typed in that run", Theme.Text);
@@ -334,9 +340,16 @@ namespace LiveWpm
             RectangleF r = new RectangleF(x, y, w, 104);
             Theme.Surface(g, Theme.Card, r, 12);
             Theme.DrawText(g, caption, Theme.F(10, true), Theme.Muted, x + 18, y + 14);
-            Font big = Theme.F(32, true);
-            Theme.DrawText(g, value, big, valueColor, x + 16, y + 30);
-            Theme.DrawText(g, unit, Theme.F(12.5f, false), Theme.Muted, x + 20 + Theme.Measure(g, value, big), y + 50);
+            Font uf = Theme.F(12.5f, false);
+            float unitW = Theme.Measure(g, unit, uf);
+            float maxW = w - 34;
+            float sz = 32;
+            Font big = Theme.F(sz, true);
+            if (Theme.Measure(g, value, big) + 4 + unitW > maxW) { sz = 26; big = Theme.F(sz, true); }
+            if (Theme.Measure(g, value, big) + 4 + unitW > maxW) { sz = 22; big = Theme.F(sz, true); }
+            float vy = y + 30 + (32 - sz) * 0.45f;
+            Theme.DrawText(g, value, big, valueColor, x + 16, vy);
+            Theme.DrawText(g, unit, uf, Theme.Muted, x + 20 + Theme.Measure(g, value, big), y + 50);
             Theme.DrawText(g, foot, Theme.F(10.5f, false), Theme.Muted, x + 18, y + 78);
         }
 
@@ -375,11 +388,11 @@ namespace LiveWpm
                 bool hot = Hov("row:" + key) || Hov("del:" + key) || Hov("graph:" + key);
                 Theme.Surface(g, hot ? Theme.CardHover : Theme.Card, row, 9);
 
-                string label = d.Date == today ? "Today" : d.Date == today.AddDays(-1) ? "Yesterday" : d.Date.ToString("ddd, MMM d");
+                string label = d.Date == today ? "Today" : d.Date == today.AddDays(-1) ? "Yesterday" : d.Date.ToString("ddd, MMM d", CultureInfo.InvariantCulture);
                 Font df = Theme.F(13, true);
                 Theme.DrawText(g, label, df, Theme.Text, 46, y + 11);
                 float lw = Theme.Measure(g, label, df);
-                Theme.DrawText(g, d.Date.ToString("yyyy"), Theme.F(11, false), Theme.Muted, 52 + lw, y + 13);
+                Theme.DrawText(g, d.Date.ToString("yyyy", CultureInfo.InvariantCulture), Theme.F(11, false), Theme.Muted, 52 + lw, y + 13);
 
                 Font vf = Theme.F(13, true);
                 Theme.DrawTextRight(g, d.PeakWpm > 0 ? Theme.Fmt(d.PeakWpm) + " wpm" : "—", vf, Theme.Accent, cPeak, y + 11);
@@ -390,20 +403,29 @@ namespace LiveWpm
                 Hit(rowHit, "row:" + key);
                 if (hot)
                 {
-                    RectangleF del = new RectangleF(52 + lw + Theme.Measure(g, "0000", Theme.F(11, false)) + 12, y + 7, 28, 26);
-                    bool dh = Hov("del:" + key);
-                    if (dh) Theme.FillRound(g, Color.FromArgb(60, Theme.Danger), del, 7);
-                    DrawTrash(g, del.X + del.Width / 2, del.Y + del.Height / 2, dh ? Theme.DangerText : Theme.Muted);
-                    Hit(RectangleF.Intersect(del, clip), "del:" + key);
-
-                    RectangleF gr = new RectangleF(del.Right + 4, del.Y, 28, 26);
+                    RectangleF gr = new RectangleF(192, y + 7, 28, 26);
                     bool gh = Hov("graph:" + key);
                     if (gh) Theme.FillRound(g, Color.FromArgb(50, Theme.Accent), gr, 7);
                     DrawGraphIcon(g, gr.X + gr.Width / 2, gr.Y + gr.Height / 2, gh ? Theme.Accent : Theme.Muted);
                     Hit(RectangleF.Intersect(gr, clip), "graph:" + key);
+
+                    RectangleF del = new RectangleF(230, y + 7, 28, 26);
+                    bool dh = Hov("del:" + key);
+                    if (dh) Theme.FillRound(g, Color.FromArgb(60, Theme.Danger), del, 7);
+                    DrawTrash(g, del.X + del.Width / 2, del.Y + del.Height / 2, dh ? Theme.DangerText : Theme.Muted);
+                    Hit(RectangleF.Intersect(del, clip), "del:" + key);
                 }
             }
             g.Restore(st);
+            float viewH = ListBottom - ListTop;
+            float contentH = days.Count * RowH;
+            if (contentH > viewH)
+            {
+                float thumbH = Math.Max(24, viewH * viewH / contentH);
+                float maxScroll = contentH - viewH;
+                float thumbY = ListTop + (maxScroll > 0 ? (scroll / maxScroll) * (viewH - thumbH) : 0);
+                Theme.FillRound(g, Color.FromArgb(110, Theme.Muted), new RectangleF(W - 18, thumbY, 4, thumbH), 2);
+            }
         }
 
         // -- settings --
@@ -461,10 +483,11 @@ namespace LiveWpm
         }
 
         bool discordCopied;
+        Timer discordTimer;
 
         static string LastLabel(SessionUndo u)
         {
-            string when = u.Started.Date == DateTime.Today ? u.Started.ToString("h:mm tt") : u.Started.ToString("MMM d, h:mm tt");
+            string when = u.Started.Date == DateTime.Today ? u.Started.ToString("h:mm tt", CultureInfo.InvariantCulture) : u.Started.ToString("MMM d, h:mm tt", CultureInfo.InvariantCulture);
             return Theme.Num(u.Words) + (u.Words == 1 ? " word" : " words") + " at " + when;
         }
 
@@ -504,7 +527,26 @@ namespace LiveWpm
             Theme.DrawTextCenter(g, button, bf, danger ? Theme.DangerText : Theme.Text, b.X + bw / 2, b.Y + 6);
             Hit(b, id);
             if (!string.IsNullOrEmpty(value))
-                Theme.DrawTextRight(g, value, Theme.F(11.5f, false), Theme.Muted, b.X - 12, r.Y + 11);
+            {
+                Font vf = Theme.F(11.5f, false);
+                float titleEnd = r.X + 16 + Theme.Measure(g, title, Theme.F(12.5f, true)) + 16;
+                float maxValW = Math.Max(40, (b.X - 12) - titleEnd);
+                Theme.DrawTextRight(g, FitText(g, value, vf, maxValW), vf, Theme.Muted, b.X - 12, r.Y + 11);
+            }
+        }
+
+        static string FitText(Graphics g, string s, Font f, float maxW)
+        {
+            if (Theme.Measure(g, s, f) <= maxW) return s;
+            const string ell = "...";
+            int lo = 0, hi = s.Length;
+            while (lo < hi)
+            {
+                int mid = (lo + hi + 1) / 2;
+                if (Theme.Measure(g, s.Substring(0, mid) + ell, f) <= maxW) lo = mid;
+                else hi = mid - 1;
+            }
+            return lo > 0 ? s.Substring(0, lo).TrimEnd() + ell : ell;
         }
 
         // Name ... value  (switch) - the whole row toggles it.
@@ -626,7 +668,7 @@ namespace LiveWpm
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing) { logo.Dispose(); glass.Dispose(); }
+            if (disposing) { if (discordTimer != null) { discordTimer.Dispose(); discordTimer = null; } logo.Dispose(); glass.Dispose(); }
             base.Dispose(disposing);
         }
     }

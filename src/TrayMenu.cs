@@ -125,9 +125,13 @@ namespace LiveWpm
 
                 if (it.State != null)
                 {
-                    Theme.DrawText(g, it.Label, Theme.F(13, true), Theme.Text, r.X + 10, r.Y + 7);
-                    Theme.DrawText(g, it.Sub, Theme.F(10.5f, false), Theme.Muted, r.X + 10, r.Y + 25);
-                    DrawSwitch(g, new RectangleF(r.Right - 48, r.Y + (r.Height - 20) / 2, 38, 20), it.State());
+                    // A switch whose parent is off has no effect: grey it out but keep showing its saved state.
+                    bool dimmed = (i == 1 && !store.Tracking) || (i == 2 && (!store.Tracking || !store.Floating));
+                    Color lc = dimmed ? Theme.Muted : Theme.Text;
+                    Color sc = dimmed ? Color.FromArgb(140, Theme.Muted) : Theme.Muted;
+                    Theme.DrawText(g, it.Label, Theme.F(13, true), lc, r.X + 10, r.Y + 7);
+                    Theme.DrawText(g, it.Sub, Theme.F(10.5f, false), sc, r.X + 10, r.Y + 25);
+                    DrawSwitch(g, new RectangleF(r.Right - 48, r.Y + (r.Height - 20) / 2, 38, 20), it.State(), dimmed);
                 }
                 else
                 {
@@ -139,10 +143,16 @@ namespace LiveWpm
 
         public static void DrawSwitch(Graphics g, RectangleF r, bool on)
         {
-            if (on) Theme.FillAccent(g, r, r.Height / 2); else Theme.FillRound(g, Theme.Track, r, r.Height / 2);
+            DrawSwitch(g, r, on, false);
+        }
+
+        public static void DrawSwitch(Graphics g, RectangleF r, bool on, bool dimmed)
+        {
+            bool lit = on && !dimmed;
+            if (lit) Theme.FillAccent(g, r, r.Height / 2); else Theme.FillRound(g, Theme.Track, r, r.Height / 2);
             float d = r.Height - 6;
             float x = on ? r.Right - d - 3 : r.X + 3;
-            using (SolidBrush knob = new SolidBrush(on ? Theme.OnAccent : Theme.Muted))
+            using (SolidBrush knob = new SolidBrush(lit ? Theme.OnAccent : Theme.Muted))
                 g.FillEllipse(knob, x, r.Y + 3, d, d);
         }
 

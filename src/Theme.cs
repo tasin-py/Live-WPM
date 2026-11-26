@@ -47,7 +47,7 @@ namespace LiveWpm
         // Card colour without transparency, for Windows controls that can't blend (text boxes).
         public static Color CardSolid { get { return Solid(Card); } }
 
-        // Window background. Glass lays soft colour behind its see-through cards so they read as glass.
+        // Window background.
         public static void PaintBackground(Graphics g, float w, float h)
         {
             PaintBackground(g, Current, new RectangleF(0, 0, w, h));
@@ -56,25 +56,6 @@ namespace LiveWpm
         public static void PaintBackground(Graphics g, Palette p, RectangleF r)
         {
             using (SolidBrush b = new SolidBrush(p.Bg)) g.FillRectangle(b, r);
-            if (p.Blobs == null) return;
-            float w = r.Width, h = r.Height;
-            Blob(g, r.X + w * 0.10f, r.Y + h * 0.05f, w * 0.62f, p.Blobs[0]);
-            Blob(g, r.X + w * 0.98f, r.Y + h * 0.95f, w * 0.62f, p.Blobs[1]);
-            Blob(g, r.X + w * 0.78f, r.Y + h * 0.20f, w * 0.38f, p.Blobs[2]);
-        }
-
-        static void Blob(Graphics g, float cx, float cy, float r, Color c)
-        {
-            using (GraphicsPath p = new GraphicsPath())
-            {
-                p.AddEllipse(cx - r, cy - r, r * 2, r * 2);
-                using (PathGradientBrush b = new PathGradientBrush(p))
-                {
-                    b.CenterColor = c;
-                    b.SurroundColors = new[] { Color.FromArgb(0, c) };
-                    g.FillPath(b, p);
-                }
-            }
         }
 
         // A card or panel: fill, plus the theme's hairline edge, or a raised glass pane.
@@ -106,18 +87,6 @@ namespace LiveWpm
 
             }
             Rim(g, r, rad, 1);
-        }
-
-        // Light across the upper half of a pane, fading out by the middle.
-        public static void Sheen(Graphics g, RectangleF r, int alpha)
-        {
-            float h = Math.Max(1, r.Height * 0.5f);
-            using (LinearGradientBrush b = new LinearGradientBrush(new RectangleF(r.X, r.Y - 1, r.Width, h + 2),
-                       Color.FromArgb(alpha, 255, 255, 255), Color.FromArgb(0, 255, 255, 255), 90f))
-            {
-                b.WrapMode = WrapMode.TileFlipXY; // a plain Tile repeats the bright start as a line
-                g.FillRectangle(b, r.X, r.Y, r.Width, h);
-            }
         }
 
         // Glass bevel: the outer edge is lit at the top and fades down; just inside it, a shade
@@ -170,7 +139,6 @@ namespace LiveWpm
         // ---- app font: TBJ Neuetra Sans ---------------------------------------
         // The .ttf files in src\fonts are built into the exe, so the font works on any PC.
         // An installed copy is used if there is one; Segoe UI is the fallback.
-        const string FontName = "TBJ Neuetra Sans";
         static readonly System.Drawing.Text.PrivateFontCollection privateFonts = new System.Drawing.Text.PrivateFontCollection();
         static FontFamily regular, bold;
 
@@ -217,8 +185,6 @@ namespace LiveWpm
             if (regular == null) regular = new FontFamily("Segoe UI");
             if (bold == null) bold = regular;
         }
-
-        public static bool HasAppFont { get { LoadFonts(); return regular.Name.IndexOf("Neuetra", StringComparison.OrdinalIgnoreCase) >= 0; } }
 
         public static Font F(float size, bool isBold)
         {
@@ -685,6 +651,19 @@ namespace LiveWpm
         public static string Num(long v)
         {
             return v.ToString("#,0", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        // The X close button shared by the borderless windows: red when hovered.
+        public static void DrawCloseX(Graphics g, RectangleF r, bool hover, Color normal)
+        {
+            if (hover) FillRound(g, Danger, r, 7);
+            float cx = r.X + r.Width / 2, cy = r.Y + r.Height / 2;
+            using (Pen p = new Pen(hover ? Color.White : normal, 1.6f))
+            {
+                p.StartCap = p.EndCap = LineCap.Round;
+                g.DrawLine(p, cx - 4.5f, cy - 4.5f, cx + 4.5f, cy + 4.5f);
+                g.DrawLine(p, cx + 4.5f, cy - 4.5f, cx - 4.5f, cy + 4.5f);
+            }
         }
     }
 

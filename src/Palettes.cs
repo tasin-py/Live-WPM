@@ -102,7 +102,6 @@ namespace LiveWpm
         public Color Dial, Hot, Orange, Danger, DangerText, Outline, FloatTint, LogoAccent;
 
         public Color DialColor { get { return Dial.IsEmpty ? Accent : Dial; } }   // the speedometer's arc
-        public Color[] Blobs;      // soft colour behind see-through surfaces (glass)
         public bool Light, Glass, Cute, Shiny;
         public float Radius = 1;   // corner roundness
     }

@@ -77,7 +77,7 @@ namespace LiveWpm
 
             Theme.DrawText(g, "Themes", Theme.F(18, true), Theme.Text, 26, 20);
             Theme.DrawText(g, "Pick one to apply it. Live WPM remembers your choice.", Theme.F(11.5f, false), Theme.Muted, 27, 48);
-            DrawClose(g);
+            Theme.DrawCloseX(g, CloseRect, hoverClose, Theme.Muted);
 
             for (int i = 0; i < Theme.ThemeCount; i++)
             {
@@ -147,18 +147,6 @@ namespace LiveWpm
             }
             g.Restore(st);
             if (p.Light) Theme.StrokeRound(g, Color.FromArgb(28, 0, 0, 0), new RectangleF(t.X + 0.5f, t.Y + 0.5f, t.Width - 1, t.Height - 1), 10, 1);
-        }
-
-        void DrawClose(Graphics g)
-        {
-            if (hoverClose) Theme.FillRound(g, Theme.Danger, CloseRect, 7);
-            float cx = CloseRect.X + CloseRect.Width / 2, cy = CloseRect.Y + CloseRect.Height / 2;
-            using (Pen p = new Pen(hoverClose ? Color.White : Theme.Muted, 1.6f))
-            {
-                p.StartCap = p.EndCap = LineCap.Round;
-                g.DrawLine(p, cx - 4.5f, cy - 4.5f, cx + 4.5f, cy + 4.5f);
-                g.DrawLine(p, cx + 4.5f, cy - 4.5f, cx - 4.5f, cy + 4.5f);
-            }
         }
 
         int HitTile(float x, float y)

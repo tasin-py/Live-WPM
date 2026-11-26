@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Threading;
@@ -51,7 +52,7 @@ namespace LiveWpm
             ui = uiThread;
             store = data;
             try { File.Delete(Application.ExecutablePath + ".old"); } catch { } // left over from the last update
-            if (store.LastUpdateCheck == DateTime.Today.ToString("yyyy-MM-dd")) return;
+            if (store.LastUpdateCheck == DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)) return;
             // wait a little after startup so Windows isn't busy signing in
             System.Windows.Forms.Timer later = new System.Windows.Forms.Timer();
             later.Interval = 30000;
@@ -84,8 +85,12 @@ namespace LiveWpm
                         Dictionary<string, object> a = (Dictionary<string, object>)o;
                         if (((string)a["name"]).EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
                         {
-                            url = (string)a["browser_download_url"];
-                            break;
+                            string candidate = (string)a["browser_download_url"];
+                            if (candidate != null && candidate.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase))
+                            {
+                                url = candidate;
+                                break;
+                            }
                         }
                     }
                     Version v;
@@ -102,7 +107,7 @@ namespace LiveWpm
                     downloadUrl = url;
                     if (err == null)
                     {
-                        store.LastUpdateCheck = DateTime.Today.ToString("yyyy-MM-dd");
+                        store.LastUpdateCheck = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
                         store.Save();
                     }
                     Notify();

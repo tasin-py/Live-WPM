@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Globalization;
 using System.Windows.Forms;
 
 namespace LiveWpm
@@ -19,7 +20,7 @@ namespace LiveWpm
         DayGraphWindow(DayStat day)
         {
             this.day = day;
-            Text = day.Date.ToString("D");
+            Text = day.Date.ToString("D", CultureInfo.InvariantCulture);
             FormBorderStyle = FormBorderStyle.None;
             ShowInTaskbar = false;
             StartPosition = FormStartPosition.CenterParent;
@@ -53,10 +54,10 @@ namespace LiveWpm
             Theme.PaintBackground(g, W, H);
 
             DateTime today = DateTime.Today;
-            string title = day.Date == today ? "Today" : day.Date == today.AddDays(-1) ? "Yesterday" : day.Date.ToString("dddd, MMM d");
+            string title = day.Date == today ? "Today" : day.Date == today.AddDays(-1) ? "Yesterday" : day.Date.ToString("dddd, MMM d", CultureInfo.InvariantCulture);
             Font tf = Theme.F(18, true);
             Theme.DrawText(g, title, tf, Theme.Text, 26, 22);
-            Theme.DrawText(g, day.Date.ToString("yyyy"), Theme.F(12, false), Theme.Muted, 32 + Theme.Measure(g, title, tf), 28);
+            Theme.DrawText(g, day.Date.ToString("yyyy", CultureInfo.InvariantCulture), Theme.F(12, false), Theme.Muted, 32 + Theme.Measure(g, title, tf), 28);
 
             // the day's totals, as a quiet stat line
             System.Collections.Generic.List<string> list = new System.Collections.Generic.List<string> {
@@ -77,24 +78,12 @@ namespace LiveWpm
                 Theme.DrawText(g, stats[i], sf, i == 0 ? Theme.Accent : Theme.Muted, x, 57);
                 x += Theme.Measure(g, stats[i], sf);
             }
-            DrawClose(g);
+            Theme.DrawCloseX(g, CloseRect, hoverClose, Theme.Muted);
 
             Theme.Surface(g, Theme.Card, GraphRect, 12);
             SpeedGraph.Draw(g, GraphRect, day, hoverPoint,
                 day.Words > 0 ? "No graph for this day. Speed graphs are recorded from today onward." : "No runs this day.",
                 Theme.Card);
-        }
-
-        void DrawClose(Graphics g)
-        {
-            if (hoverClose) Theme.FillRound(g, Theme.Danger, CloseRect, 7);
-            float cx = CloseRect.X + CloseRect.Width / 2, cy = CloseRect.Y + CloseRect.Height / 2;
-            using (Pen p = new Pen(hoverClose ? Color.White : Theme.Muted, 1.6f))
-            {
-                p.StartCap = p.EndCap = LineCap.Round;
-                g.DrawLine(p, cx - 4.5f, cy - 4.5f, cx + 4.5f, cy + 4.5f);
-                g.DrawLine(p, cx + 4.5f, cy - 4.5f, cx - 4.5f, cy + 4.5f);
-            }
         }
 
         protected override void OnMouseMove(MouseEventArgs e)

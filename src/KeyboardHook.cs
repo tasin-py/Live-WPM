@@ -92,8 +92,6 @@ namespace LiveWpm
             watch.Tick += delegate { Watch(); };
         }
 
-        public bool Active { get { return hook != IntPtr.Zero; } }
-
         public void Start()
         {
             if (hook != IntPtr.Zero) return;
